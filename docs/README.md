@@ -4,6 +4,23 @@ Bienvenido a la documentación técnica de **django-sifen**, la librería Python
 
 ## 📚 Guías Disponibles
 
+### 🔐 [Manejo de Certificados](CERTIFICADOS.md)
+Guía completa sobre todas las formas de configurar y usar certificados digitales.
+
+**Contenido:**
+- 6 opciones para proveer certificados (archivo, bytes, Base64, DB, env vars, secrets manager)
+- Ejemplos prácticos para cada opción
+- Integración con AWS, Azure, GCP
+- Mejores prácticas de seguridad
+- Comparación de opciones por escenario
+
+**Útil para:**
+- Configurar certificados en diferentes ambientes
+- Migrar de desarrollo a producción
+- Implementar rotación de certificados
+- Integrar con servicios cloud
+- Manejar multi-empresa
+
 ### 🏗️ [Estructura XML](ESTRUCTURA_XML.md)
 Documentación completa sobre la estructura XML de documentos electrónicos SIFEN.
 

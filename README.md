@@ -10,6 +10,12 @@ Librería Python para Facturación Electrónica de Paraguay (SIFEN)
 
 ### Guías Técnicas
 
+- **[Manejo de Certificados](docs/CERTIFICADOS.md)** - Todas las formas de configurar certificados digitales
+  - Archivo en disco, bytes, Base64
+  - Desde base de datos o secrets manager
+  - Variables de entorno y cloud
+  - Mejores prácticas de seguridad
+  
 - **[Estructura XML](docs/ESTRUCTURA_XML.md)** - Documentación completa de la estructura XML generada
   - Grupos principales y su ubicación en el código
   - Dónde modificar según cambios de SIFEN
@@ -21,6 +27,7 @@ Librería Python para Facturación Electrónica de Paraguay (SIFEN)
 Para más detalles sobre el uso de la librería, consulta los ejemplos en el directorio `examples/`:
 
 - `ejemplo_basico.py` - Uso básico de la librería
+- `ejemplo_certificados.py` - Todas las formas de configurar certificados
 - `ejemplo_nota_tecnica_13.py` - Cálculo de IVA con NT-13
 - `ejemplo_validacion_firmas.py` - Validación de firmas digitales y QR
 - `ejemplo_compresion_lote.py` - Compresión ZIP en lotes
