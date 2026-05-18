@@ -10,6 +10,13 @@ Librería Python para Facturación Electrónica de Paraguay (SIFEN)
 
 ### Guías Técnicas
 
+- **[Testing y Verificación](docs/TESTING.md)** - Cómo probar que todo funciona
+  - Tests rápidos y por componente
+  - Tests de integración completos
+  - Ambiente de desarrollo SIFEN
+  - Tests automatizados con pytest
+  - Troubleshooting común
+
 - **[Manejo de Certificados](docs/CERTIFICADOS.md)** - Todas las formas de configurar certificados digitales
   - Archivo en disco, bytes, Base64
   - Desde base de datos o secrets manager
@@ -21,6 +28,22 @@ Librería Python para Facturación Electrónica de Paraguay (SIFEN)
   - Dónde modificar según cambios de SIFEN
   - Ejemplos de cambios comunes
   - Mejores prácticas de mantenimiento
+
+### Verificación Rápida
+
+```bash
+# Verificar que todo funciona
+python verificar_instalacion.py
+```
+
+Este script verifica:
+- ✅ Instalación de la librería
+- ✅ Dependencias
+- ✅ Estructura de archivos
+- ✅ Imports principales
+- ✅ Certificado (opcional)
+- ✅ Conectividad con SIFEN
+- ✅ Tests básicos
 
 ### Ejemplos de Uso
 

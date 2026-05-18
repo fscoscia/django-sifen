@@ -24,12 +24,12 @@ PATH_CONSULTA = "/de/ws/consultas/consulta.wsdl"
 
 # Namespaces XML
 NAMESPACE_SIFEN = "http://ekuatia.set.gov.py/sifen/xsd"
-NAMESPACE_SOAP = "http://schemas.xmlsoap.org/soap/envelope/"
+NAMESPACE_SOAP = "http://www.w3.org/2003/05/soap-envelope"
 NAMESPACE_DS = "http://www.w3.org/2000/09/xmldsig#"
 
 # Timeouts HTTP (en segundos)
-HTTP_CONNECT_TIMEOUT = 10
-HTTP_READ_TIMEOUT = 30
+HTTP_CONNECT_TIMEOUT = 30
+HTTP_READ_TIMEOUT = 120
 
 # CSC de prueba (solo para ambiente de desarrollo)
 CSC_DEV_ID_1 = "0001"

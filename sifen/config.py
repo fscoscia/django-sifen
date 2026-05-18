@@ -185,6 +185,16 @@ class SifenConfig:
         """Path para consulta de DE."""
         return PATH_CONSULTA
 
+    @property
+    def timeout_conexion(self) -> int:
+        """Timeout de conexión (alias de http_connect_timeout)."""
+        return self.http_connect_timeout
+
+    @property
+    def timeout_lectura(self) -> int:
+        """Timeout de lectura (alias de http_read_timeout)."""
+        return self.http_read_timeout
+
     def validar(self) -> None:
         """
         Valida la configuración.

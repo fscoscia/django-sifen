@@ -5,7 +5,7 @@ Representa los diferentes tipos de eventos que se pueden enviar a SIFEN.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Tuple
 from datetime import datetime
 
 from sifen.models.base import SifenObject
@@ -21,7 +21,7 @@ class EventoCancelacion(SifenObject):
     
     mOtEve: str  # Motivo del evento (máx 500 caracteres)
     
-    def validate(self) -> tuple[bool, Optional[str]]:
+    def validate(self) -> Tuple[bool, Optional[str]]:
         """Valida el evento de cancelación."""
         if not self.mOtEve or not self.mOtEve.strip():
             return False, "El motivo de cancelación es requerido"
@@ -42,7 +42,7 @@ class EventoConformidad(SifenObject):
     
     mOtEve: Optional[str] = None  # Motivo (opcional, máx 500 caracteres)
     
-    def validate(self) -> tuple[bool, Optional[str]]:
+    def validate(self) -> Tuple[bool, Optional[str]]:
         """Valida el evento de conformidad."""
         if self.mOtEve and len(self.mOtEve) > 500:
             return False, "El motivo no puede exceder 500 caracteres"
@@ -60,7 +60,7 @@ class EventoDisconformidad(SifenObject):
     
     mOtEve: str  # Motivo de disconformidad (requerido, máx 500 caracteres)
     
-    def validate(self) -> tuple[bool, Optional[str]]:
+    def validate(self) -> Tuple[bool, Optional[str]]:
         """Valida el evento de disconformidad."""
         if not self.mOtEve or not self.mOtEve.strip():
             return False, "El motivo de disconformidad es requerido"
@@ -81,7 +81,7 @@ class EventoDesconocimiento(SifenObject):
     
     mOtEve: str  # Motivo de desconocimiento (requerido, máx 500 caracteres)
     
-    def validate(self) -> tuple[bool, Optional[str]]:
+    def validate(self) -> Tuple[bool, Optional[str]]:
         """Valida el evento de desconocimiento."""
         if not self.mOtEve or not self.mOtEve.strip():
             return False, "El motivo de desconocimiento es requerido"
@@ -108,7 +108,7 @@ class EventoInutilizacion(SifenObject):
     dNumFin: str  # Número final (7 dígitos)
     iTiDE: int  # Tipo de documento electrónico
     
-    def validate(self) -> tuple[bool, Optional[str]]:
+    def validate(self) -> Tuple[bool, Optional[str]]:
         """Valida el evento de inutilización."""
         if not self.mOtEve or not self.mOtEve.strip():
             return False, "El motivo de inutilización es requerido"
@@ -146,7 +146,7 @@ class EventoNotificacionNoRecepcion(SifenObject):
     dNumDE: str  # Número del documento (formato: 001-001-0000001)
     dFeEmiDE: datetime  # Fecha de emisión del DE
     
-    def validate(self) -> tuple[bool, Optional[str]]:
+    def validate(self) -> Tuple[bool, Optional[str]]:
         """Valida el evento de notificación de no recepción."""
         if not self.mOtEve or not self.mOtEve.strip():
             return False, "El motivo es requerido"
@@ -180,7 +180,7 @@ class GestionEvento(SifenObject):
     # Eventos específicos (solo uno debe estar presente)
     gGroupGesEve: Optional[SifenObject] = None
     
-    def validate(self) -> tuple[bool, Optional[str]]:
+    def validate(self) -> Tuple[bool, Optional[str]]:
         """Valida la gestión de evento."""
         if not self.Id or not self.Id.strip():
             return False, "El ID del evento es requerido"

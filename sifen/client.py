@@ -2,7 +2,7 @@
 Cliente principal para interactuar con SIFEN.
 """
 
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from threading import Lock
 
 from sifen.config import SifenConfig
@@ -114,11 +114,13 @@ class SifenClient:
             documento.generate_cdc()
 
         # 3. Generar XML
-        xml_string = generate_xml(documento)
+        xml_string = generate_xml(documento, self.config.ambiente)
 
-        # 4. Firmar
+        # 4. Firmar y actualizar QR
+        from sifen.crypto.signature import update_qr_after_signature
         root = etree.fromstring(xml_string.encode("utf-8"))
-        signed_root = sign_xml_element(root, self.config, documento.Id)
+        signed_root = sign_xml_element(root, self.config, documento.CDC)
+        update_qr_after_signature(signed_root, self.config.csc)
         xml_firmado = etree.tostring(signed_root, encoding="unicode")
 
         # 5. Enviar a SIFEN
@@ -153,7 +155,7 @@ class SifenClient:
 
         return consultar_ruc(self.config, ruc, dv)
 
-    def validar_documento(self, documento) -> tuple[bool, Optional[str]]:
+    def validar_documento(self, documento) -> Tuple[bool, Optional[str]]:
         """
         Valida un documento sin enviarlo.
 
@@ -181,25 +183,25 @@ class SifenClient:
         if not documento.CDC:
             documento.generate_cdc()
 
-        return generate_xml(documento)
+        return generate_xml(documento, self.config.ambiente)
 
-    def firmar_xml(self, xml: str, reference_id: str) -> str:
+    def firmar_xml(
+        self, xml: str, reference_id: str, csc: Optional[str] = None
+    ) -> str:
         """
-        Firma un XML con el certificado configurado.
+        Firma un XML con el certificado configurado y actualiza el código QR.
 
         Args:
             xml: XML a firmar.
             reference_id: ID del elemento a referenciar en la firma.
+            csc: Código Secreto del Contribuyente (CSC). Si no se proporciona, usa el del config.
 
         Returns:
-            XML firmado.
+            XML firmado con QR actualizado.
         """
-        from sifen.crypto import sign_xml_element
-        from lxml import etree
+        from sifen.crypto.signature import sign_xml_string
 
-        root = etree.fromstring(xml.encode("utf-8"))
-        signed_root = sign_xml_element(root, self.config, reference_id)
-        return etree.tostring(signed_root, encoding="unicode")
+        return sign_xml_string(xml, self.config, reference_id, csc or self.config.csc)
 
     @classmethod
     def validar_ruc(cls, ruc: str, dv: Optional[str] = None) -> bool:
@@ -311,7 +313,7 @@ class SifenClient:
                 documento.generate_cdc()
 
             # Generar XML
-            xml_string = generate_xml(documento)
+            xml_string = generate_xml(documento, self.config.ambiente)
 
             # Firmar
             root = etree.fromstring(xml_string.encode("utf-8"))

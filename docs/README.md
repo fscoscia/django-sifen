@@ -4,6 +4,24 @@ Bienvenido a la documentación técnica de **django-sifen**, la librería Python
 
 ## 📚 Guías Disponibles
 
+### 🧪 [Testing y Verificación](TESTING.md)
+Guía completa sobre cómo probar que todo funciona correctamente.
+
+**Contenido:**
+- Tests rápidos por componente
+- Tests de integración completos
+- Configuración del ambiente de desarrollo SIFEN
+- Tests automatizados con pytest
+- Troubleshooting de problemas comunes
+- Script de verificación automática
+
+**Útil para:**
+- Verificar instalación correcta
+- Probar antes de producción
+- Debugging de problemas
+- Configurar CI/CD
+- Validar cambios
+
 ### 🔐 [Manejo de Certificados](CERTIFICADOS.md)
 Guía completa sobre todas las formas de configurar y usar certificados digitales.
 

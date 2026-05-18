@@ -4,7 +4,7 @@ Formateadores para datos SIFEN.
 Proporciona funciones para formatear RUC, números de documento, etc.
 """
 
-from typing import Optional
+from typing import Optional, Tuple
 from decimal import Decimal
 
 
@@ -79,7 +79,7 @@ def formatear_cdc(cdc: str) -> str:
     )
 
 
-def limpiar_ruc(ruc: str) -> tuple[str, str]:
+def limpiar_ruc(ruc: str) -> Tuple[str, str]:
     """
     Limpia y separa un RUC en número y DV.
 

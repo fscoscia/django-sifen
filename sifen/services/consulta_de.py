@@ -84,13 +84,14 @@ class ConsultaDEService(SifenServiceBase):
         # 2. Crear request de consulta
         r_cons_de = etree.SubElement(
             soap_body,
-            f"{{{NAMESPACE_SIFEN}}}rConsDe"
+            f"{{{NAMESPACE_SIFEN}}}rEnviConsDeRequest",
+            nsmap={None: NAMESPACE_SIFEN},
         )
-        
+
         # dId - Identificador de la consulta
         d_id = etree.SubElement(r_cons_de, f"{{{NAMESPACE_SIFEN}}}dId")
         d_id.text = "1"
-        
+
         # dCDC - CDC a consultar
         d_cdc = etree.SubElement(r_cons_de, f"{{{NAMESPACE_SIFEN}}}dCDC")
         d_cdc.text = cdc
@@ -122,44 +123,47 @@ class ConsultaDEService(SifenServiceBase):
         # Extraer body
         body = self._extract_soap_body(soap_response)
         
+        NS = NAMESPACE_SIFEN
+
         # Buscar elemento de respuesta
-        resp_elem = body.find('.//*[local-name()="rRetConsDe"]')
-        
+        resp_elem = body.find(f".//{{{NS}}}rEnviConsDeResponse")
+
         if resp_elem is None:
             raise SifenException(
-                "No se encontró elemento rRetConsDe en la respuesta"
+                "No se encontró elemento rEnviConsDeResponse en la respuesta"
             )
-        
-        # Extraer código y mensaje
-        codigo = resp_elem.findtext('.//*[local-name()="dCodRes"]', '')
-        mensaje = resp_elem.findtext('.//*[local-name()="dMsgRes"]', '')
-        
+
+        # Extraer código y mensaje (hijos directos de rEnviConsDeResponse)
+        codigo = resp_elem.findtext(f"{{{NS}}}dCodRes", '')
+        mensaje = resp_elem.findtext(f"{{{NS}}}dMsgRes", '')
+
+        # Fecha de procesamiento (hijo directo de rEnviConsDeResponse)
+        fecha_aprobacion = None
+        fecha_str = resp_elem.findtext(f"{{{NS}}}dFecProc")
+        if fecha_str:
+            try:
+                fecha_aprobacion = datetime.fromisoformat(fecha_str)
+            except ValueError:
+                pass
+
         # Datos del DE (si se encontró)
         estado = None
-        fecha_aprobacion = None
         xml_de = None
-        
-        # xContenDE - Contenido del DE
-        x_conten_de = resp_elem.find('.//*[local-name()="xContenDE"]')
-        
+
+        # xContenDE - Contenido del DE (contiene rDE y dProtAut)
+        x_conten_de = resp_elem.find(f"{{{NS}}}xContenDE")
+
         if x_conten_de is not None:
-            estado = x_conten_de.findtext('.//*[local-name()="dEstRes"]')
-            
-            fecha_str = x_conten_de.findtext('.//*[local-name()="dFecProc"]')
-            if fecha_str:
-                try:
-                    fecha_aprobacion = datetime.fromisoformat(fecha_str)
-                except ValueError:
-                    pass
-            
             # XML del DE (si está incluido)
-            de_elem = x_conten_de.find('.//*[local-name()="rDE"]')
+            de_elem = x_conten_de.find(f".//{{{NS}}}rDE")
             if de_elem is not None:
                 xml_de = etree.tostring(
                     de_elem,
                     encoding='unicode',
                     pretty_print=True
                 )
+            # Estado derivado del código de respuesta
+            estado = 'Aprobado' if codigo in ('0260', '0261') else codigo
         
         # XML de respuesta
         xml_respuesta = etree.tostring(
