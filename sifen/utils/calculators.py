@@ -89,34 +89,45 @@ def calcular_iva_item(
     # Tasa decimal
     tasa_decimal = Decimal(str(tasa_iva))
 
-    # Fórmula según Manual Técnico SIFEN v150 (E735):
-    # dBasGravIVA = (dTotOpeItem * (dPropIVA/100)) / divisor
-    # donde divisor = 1.10 para IVA 10%, 1.05 para IVA 5%
+    # Para productos exentos, la proporción debe ser 0
+    if tasa_iva == 0:
+        proporcion = Decimal("0")
 
-    if tasa_iva == 10:
-        divisor = Decimal("1.10")
-    elif tasa_iva == 5:
-        divisor = Decimal("1.05")
+    # Para productos exentos, base gravada y liquidación deben ser 0
+    if tasa_iva == 0:
+        base_gravada = Decimal("0")
+        liq_iva = Decimal("0")
     else:
-        divisor = Decimal("1")
+        # Fórmula según Manual Técnico SIFEN v150 (E735):
+        # dBasGravIVA = (dTotOpeItem * (dPropIVA/100)) / divisor
+        # donde divisor = 1.10 para IVA 10%, 1.05 para IVA 5%
 
-    # Aplicar proporción y dividir por divisor
-    base_gravada = ((total_item * proporcion / Decimal("100")) / divisor).quantize(
-        Decimal("0.01"), rounding=ROUND_HALF_UP
-    )
+        if tasa_iva == 10:
+            divisor = Decimal("1.10")
+        elif tasa_iva == 5:
+            divisor = Decimal("1.05")
+        else:
+            divisor = Decimal("1")
 
-    # Fórmula según Manual Técnico SIFEN v150 (E736):
-    # dLiqIVAItem = dBasGravIVA * (dTasaIVA/100)
-    liq_iva = (base_gravada * tasa_decimal / Decimal("100")).quantize(
-        Decimal("0.01"), rounding=ROUND_HALF_UP
-    )
+        # Aplicar proporción y dividir por divisor
+        base_gravada = ((total_item * proporcion / Decimal("100")) / divisor).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
 
-    # Verificar que base + IVA = total (ajustar IVA si hay diferencia por redondeo)
-    total_item_rounded = total_item.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    suma_calculada = base_gravada + liq_iva
-    if suma_calculada != total_item_rounded:
-        # Ajustar el IVA para que la suma sea exacta
-        liq_iva = total_item_rounded - base_gravada
+        # Fórmula según Manual Técnico SIFEN v150 (E736):
+        # dLiqIVAItem = dBasGravIVA * (dTasaIVA/100)
+        liq_iva = (base_gravada * tasa_decimal / Decimal("100")).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+
+        # Verificar que base + IVA = total (ajustar IVA si hay diferencia por redondeo)
+        total_item_rounded = total_item.quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        suma_calculada = base_gravada + liq_iva
+        if suma_calculada != total_item_rounded:
+            # Ajustar el IVA para que la suma sea exacta
+            liq_iva = total_item_rounded - base_gravada
 
     # Determinar afectación si no se especificó
     if afectacion_iva is None:
@@ -124,7 +135,7 @@ def calcular_iva_item(
             afectacion = 1
             descripcion = "Gravado IVA"
         elif tasa_iva == 5:
-            afectacion = 2
+            afectacion = 1
             descripcion = "Gravado IVA"
         else:
             afectacion = 3
@@ -134,11 +145,11 @@ def calcular_iva_item(
         if afectacion == 1:
             descripcion = "Gravado IVA"
         elif afectacion == 2:
-            descripcion = "Gravado IVA"
+            descripcion = "Exonerado (Art. 83- Ley 125/91)"
         elif afectacion == 3:
             descripcion = "Exento"
         elif afectacion == 4:
-            descripcion = "Gravado Parcial"
+            descripcion = "Gravado parcial (Grav-Exento)"
         else:
             descripcion = "Desconocido"
 
@@ -230,14 +241,19 @@ def calcular_totales(items: List[Item]) -> Totales:
         if valor.gCamIVA:
             iva = valor.gCamIVA
 
-            # Clasificar según afectación
+            # Clasificar según afectación y tasa
             # dSubXX y dTotOpe son suma de dTotOpeItem (con IVA incluido)
             # dBasGravIVA es la base gravada (sin IVA)
-            if iva.iAfecIVA == 1:  # Gravado 10%
-                subtotal_10 += valor.dTotOpeItem
-                base_grav_10 += iva.dBasGravIVA
-                total_iva_10 += iva.dLiqIVAItem
-            elif iva.iAfecIVA == 2:  # Gravado 5%
+            if iva.iAfecIVA == 1:  # Gravado IVA (puede ser 5% o 10%)
+                if iva.dTasaIVA == 10:
+                    subtotal_10 += valor.dTotOpeItem
+                    base_grav_10 += iva.dBasGravIVA
+                    total_iva_10 += iva.dLiqIVAItem
+                elif iva.dTasaIVA == 5:
+                    subtotal_5 += valor.dTotOpeItem
+                    base_grav_5 += iva.dBasGravIVA
+                    total_iva_5 += iva.dLiqIVAItem
+            elif iva.iAfecIVA == 2:  # Exonerado (Art. 83- Ley 125/91)
                 subtotal_5 += valor.dTotOpeItem
                 base_grav_5 += iva.dBasGravIVA
                 total_iva_5 += iva.dLiqIVAItem
@@ -282,7 +298,7 @@ def calcular_totales(items: List[Item]) -> Totales:
     if subtotal_5 > 0:
         subtotales_iva.append(
             SubtotalIVA(
-                iAfecIVA=2,
+                iAfecIVA=1,
                 dDesAfecIVA="Gravado IVA",
                 dBasGravIVA=base_grav_5.quantize(
                     Decimal("0.01"), rounding=ROUND_HALF_UP
@@ -300,7 +316,7 @@ def calcular_totales(items: List[Item]) -> Totales:
     return Totales(
         dSubExe=subtotal_exento,
         dSubExo=Decimal("0"),
-        dSub5=subtotal_5,  # Siempre incluir aunque sea 0
+        dSub5=subtotal_5 if subtotal_5 > 0 else None,
         dSub10=subtotal_10 if subtotal_10 > 0 else None,
         dTotOpe=total_operacion,
         dTotDesc=Decimal("0"),  # Total descuentos
@@ -312,18 +328,24 @@ def calcular_totales(items: List[Item]) -> Totales:
         dAnticipo=Decimal("0"),  # Anticipo
         dRedon=Decimal("0"),  # Redondeo
         dTotGralOpe=total_general,
-        dIVA5=total_iva_5,  # Siempre incluir aunque sea 0
+        dIVA5=total_iva_5 if total_iva_5 > 0 else None,
         dIVA10=total_iva_10 if total_iva_10 > 0 else None,
         dTotIVA=total_iva,
-        dBaseGrav5=base_grav_5.quantize(
-            Decimal("0.01"), rounding=ROUND_HALF_UP
-        ),  # Siempre incluir aunque sea 0
+        dBaseGrav5=(
+            base_grav_5.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            if base_grav_5 > 0
+            else None
+        ),
         dBaseGrav10=(
             base_grav_10.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             if base_grav_10 > 0
             else None
         ),
-        dTBasGraIVA=total_base_grav if total_base_grav > 0 else None,
+        dTBasGraIVA=(
+            total_base_grav.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            if (base_grav_5 > 0 or base_grav_10 > 0)
+            else None
+        ),
         gCamIVA=subtotales_iva,
         dLiqTotIVA5=total_iva_5 if total_iva_5 > 0 else None,
         dLiqTotIVA10=total_iva_10 if total_iva_10 > 0 else None,
