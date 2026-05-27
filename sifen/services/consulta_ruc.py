@@ -93,7 +93,6 @@ class ConsultaRUCService(SifenServiceBase):
 
         # 4. Hacer request
         response_xml = self._make_request(url, soap_envelope)
-        # print(etree.tostring(response_xml, pretty_print=True).decode())
         # 5. Procesar respuesta
         return self._process_response(response_xml)
 

@@ -118,6 +118,7 @@ class SifenClient:
 
         # 4. Firmar y actualizar QR
         from sifen.crypto.signature import update_qr_after_signature
+
         root = etree.fromstring(xml_string.encode("utf-8"))
         signed_root = sign_xml_element(root, self.config, documento.CDC)
         update_qr_after_signature(signed_root, self.config.csc)
@@ -185,9 +186,7 @@ class SifenClient:
 
         return generate_xml(documento, self.config.ambiente)
 
-    def firmar_xml(
-        self, xml: str, reference_id: str, csc: Optional[str] = None
-    ) -> str:
+    def firmar_xml(self, xml: str, reference_id: str, csc: Optional[str] = None) -> str:
         """
         Firma un XML con el certificado configurado y actualiza el código QR.
 
@@ -305,9 +304,9 @@ class SifenClient:
             if not is_valid:
                 raise ValidationException(f"Documento {i+1} inválido: {error}")
 
-        # Generar XMLs firmados
-        xmls_firmados = []
-        for documento in documentos:
+        # Generar XMLs firmados (como árboles XML, no strings)
+        arboles_firmados = []
+        for idx, documento in enumerate(documentos, 1):
             # Generar CDC si no existe
             if not documento.CDC:
                 documento.generate_cdc()
@@ -315,15 +314,23 @@ class SifenClient:
             # Generar XML
             xml_string = generate_xml(documento, self.config.ambiente)
 
-            # Firmar
-            root = etree.fromstring(xml_string.encode("utf-8"))
-            signed_root = sign_xml_element(root, self.config, documento.Id)
+            # Firmar - parsear sin whitespace para que DigestValue coincida con la
+            # re-serialización compacta que hace SIFEN al procesar el lote en forma asíncrona
+            parser = etree.XMLParser(remove_blank_text=True)
+            root = etree.fromstring(xml_string.encode("utf-8"), parser=parser)
+            signed_root = sign_xml_element(root, self.config, documento.CDC)
+
+            # Actualizar QR con DigestValue, IdCSC y cHashQR después de firmar
+            from sifen.crypto.signature import update_qr_after_signature
+
+            update_qr_after_signature(signed_root, self.config.csc)
+
+            # Serializar el XML firmado — etree.tostring codifica & como &amp; correctamente
             xml_firmado = etree.tostring(signed_root, encoding="unicode")
 
-            xmls_firmados.append(xml_firmado)
-
-        # Enviar lote a SIFEN
-        return recibir_lote(self.config, xmls_firmados)
+            arboles_firmados.append(xml_firmado)
+        # Enviar lote a SIFEN (ahora recibe árboles XML en lugar de strings)
+        return recibir_lote(self.config, arboles_firmados)
 
     def consultar_lote(self, numero_lote: str) -> "RespuestaConsultaLote":
         """

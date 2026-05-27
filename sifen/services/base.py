@@ -114,7 +114,7 @@ class SifenServiceBase:
             Elemento Envelope.
         """
         nsmap = {
-            "soap": NAMESPACE_SOAP,
+            "env": NAMESPACE_SOAP,
         }
 
         envelope = etree.Element(f"{{{NAMESPACE_SOAP}}}Envelope", nsmap=nsmap)
@@ -198,6 +198,7 @@ class SifenServiceBase:
             # Log de respuesta
             logger.info(f"Respuesta recibida. Status: {response.status_code}")
             logger.debug(f"SOAP Response:\n{response.text}")
+
 
             # SIFEN devuelve HTTP 400 para rechazos de negocio (ej: código 0160)
             # al igual que para aprobaciones (200). Intentamos parsear el SOAP

@@ -392,9 +392,3 @@ def update_qr_after_signature(
     # 8. Actualizar el elemento dCarQR
     dcar_qr_elem.text = nueva_url
 
-    # print(f"DEBUG QR actualizado:")
-    # print(f"  DigestValue (hex): {digest_hex_str}")
-    # print(f"  Datos Paso 1: {datos_paso1}")
-    # print(f"  Datos Paso 2: {datos_paso2}")
-    # print(f"  cHashQR: {c_hash_qr}")
-    # print(f"  URL final: {nueva_url[:100]}...")

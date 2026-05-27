@@ -31,11 +31,11 @@ from sifen.models.items import IVAItem
 from sifen.models.totales import CondicionOperacion, Pago, SubtotalIVA
 
 
-def main():
-    """Ejemplo completo de uso del SifenClient."""
+def enviar_sincronico_ejemplo():
+    """Ejemplo de envío sincrónico de un documento electrónico."""
 
     print("=" * 70)
-    print("Ejemplo: Uso del SifenClient")
+    print("Ejemplo: Envío Sincrónico")
     print("=" * 70)
 
     # 1. Configurar el cliente
@@ -48,13 +48,7 @@ def main():
         csc_id="0001",
     )
 
-    # Opción A: Configuración global
-    SifenClient.set_config(config)
-    client = SifenClient()
-
-    # Opción B: Configuración por instancia
-    # client = SifenClient(config)
-
+    client = SifenClient(config)
     print("   ✓ Cliente configurado")
 
     # 2. Validar RUC (método estático)
@@ -84,15 +78,22 @@ def main():
     # 4. Crear documento con utilidades
     print("\n4. Creando documento electrónico...")
 
+    # Generar código de seguridad aleatorio (9 dígitos)
+    import random
+
+    codigo_seguridad = str(random.randint(100000000, 999999999))
+    print(f"   Código de seguridad generado: {codigo_seguridad}")
+
     # Crear ítems usando calculadoras
+    cantidad = Decimal("10")
     item1 = Item(
         dCodInt="PROD002",
         dDesProSer="DOCUMENTO ELECTRÓNICO SIN VALOR COMERCIAL NI FISCAL - GENERADO EN AMBIENTE DE PRUEBA",
         cUniMed=77,
-        dCantProSer=Decimal("10"),
+        dCantProSer=cantidad,
         gValorItem=calcular_valor_item(
             precio_unitario=Decimal("100000"),
-            cantidad=Decimal("10"),
+            cantidad=cantidad,
             tasa_iva=10,
         ),
     )
@@ -111,14 +112,14 @@ def main():
             dNumTim=80159272,
             dEst="001",
             dPunExp="001",
-            dNumDoc="0000003",
+            dNumDoc="0000034",
             dFeIniT=datetime.strptime("2026-04-16", "%Y-%m-%d").date(),
         ),
         gDatGralOpe=DatosGeneralesDE(
             dFeEmiDE=datetime.now(),
             iTipEmi=1,
             dDesTipEmi="Normal",
-            dCodSeg="482731694",
+            dCodSeg=codigo_seguridad,
             dInfoEmi="1",
             dInfoFisc="Información de interés del Fisco respecto al DE",
             iTipTra=1,
@@ -191,23 +192,10 @@ def main():
         print(f"   ✓ XML generado ({len(xml)} caracteres)")
         print(f"   CDC: {documento.CDC}")
 
-        # Guardar XML sin firmar
-        xml_filename = f"documento_{documento.CDC}.xml"
-        with open(xml_filename, "w", encoding="utf-8") as f:
-            f.write(xml)
-        print(f"   ✓ XML guardado en: {xml_filename}")
-
         # Firmar el XML
         print("\n   Firmando XML...")
-        # Usar el CDC como reference_id para la firma
         xml_firmado = client.firmar_xml(xml, documento.CDC)
         print(f"   ✓ XML firmado ({len(xml_firmado)} caracteres)")
-
-        # Guardar XML firmado
-        xml_firmado_filename = f"documento_{documento.CDC}_firmado.xml"
-        with open(xml_firmado_filename, "w", encoding="utf-8") as f:
-            f.write(xml_firmado)
-        print(f"   ✓ XML firmado guardado en: {xml_firmado_filename}")
     except Exception as e:
         print(f"   ✗ Error: {e}")
         import traceback
@@ -239,11 +227,6 @@ def main():
                 print(
                     f"\n   Respuesta SIFEN completa:\n{respuesta.xml_respuesta[:3000]}"
                 )
-            if respuesta.xml_request:
-                req_path = f"soap_request_{documento.CDC}.xml"
-                with open(req_path, "w", encoding="utf-8") as f:
-                    f.write(respuesta.xml_request)
-                print(f"\n   SOAP request guardado en: {req_path}")
     except Exception as e:
         import traceback
 
@@ -265,6 +248,198 @@ def main():
     print("- Firma digital")
     print("- Envío a SIFEN")
     print("\nTodo en una sola línea: client.enviar_documento(documento)")
+    print("=" * 70)
+
+
+def main():
+    """Función principal para ejecutar ejemplos."""
+
+    print("\n" + "=" * 70)
+    print("EJEMPLOS DE USO DEL SIFEN CLIENT")
+    print("=" * 70)
+    print("\nOpciones disponibles:")
+    print("1. Envío sincrónico (un documento)")
+    print("2. Envío por lote (múltiples documentos)")
+    print("3. Ejecutar ambos ejemplos")
+    print("=" * 70)
+
+    # Por defecto ejecutar envío sincrónico
+    # Descomenta la opción que desees probar:
+
+    # enviar_sincronico_ejemplo()
+
+    # Para probar envío de lote, descomenta:
+    enviar_lote_ejemplo()
+
+
+def enviar_lote_ejemplo():
+    """Ejemplo de envío de lote de documentos."""
+
+    print("\n" + "=" * 70)
+    print("Ejemplo: Envío de Lote")
+    print("=" * 70)
+
+    # Configurar cliente (reutilizar la misma configuración)
+    print("\n1. Configurando cliente SIFEN...")
+    config = SifenConfig(
+        ambiente=TipoAmbiente.DEV,
+        certificado_archivo="/Users/fscoscia/Girolabs/facturacion-electronica/django-sifen/JOANA NICOLE SAWATZKY VDA DE REGIER.pfx",
+        certificado_contrasena="Sk59vkhu?!",
+        csc="ABCD0000000000000000000000000000",
+        csc_id="0001",
+    )
+
+    client = SifenClient(config)
+    print("   ✓ Cliente configurado")
+
+    # Crear múltiples documentos
+    print("\n2. Creando documentos para el lote...")
+    documentos = []
+
+    import random
+
+    # Crear 2 documentos para el lote
+    for i in range(1, 3):
+        item = Item(
+            dCodInt=f"PROD003",
+            dDesProSer=f"DOCUMENTO ELECTRÓNICO SIN VALOR COMERCIAL NI FISCAL - GENERADO EN AMBIENTE DE PRUEBA #{i}",
+            cUniMed=77,
+            dCantProSer=Decimal("10"),
+            gValorItem=calcular_valor_item(
+                precio_unitario=Decimal("100000"),
+                cantidad=Decimal("10"),
+                tasa_iva=10,
+            ),
+        )
+
+        totales = calcular_totales([item])
+
+        # Número de documento único para cada documento del lote
+        num_doc = f"{34 + i:07d}"  # 0000024, 0000025, etc.
+
+        documento = DocumentoElectronico(
+            dVerFor=150,
+            gTimb=IdentificacionDE(
+                iTiDE=1,
+                dDesTiDE="Factura electrónica",
+                dNumTim=80159272,
+                dEst="001",
+                dPunExp="001",
+                dNumDoc=num_doc,
+                dFeIniT=datetime.strptime("2026-04-16", "%Y-%m-%d").date(),
+            ),
+            gDatGralOpe=DatosGeneralesDE(
+                dFeEmiDE=datetime.now(),
+                iTipEmi=1,
+                dDesTipEmi="Normal",
+                dCodSeg=str(
+                    random.randint(100000000, 999999999)
+                ),  # Código aleatorio único
+                dInfoEmi="1",
+                dInfoFisc="Información de interés del Fisco respecto al DE",
+                iTipTra=1,
+                dDesTipTra="Venta de mercadería",
+                iTImp=1,
+                dDesTImp="IVA",
+                cMoneOpe="PYG",
+                dDesMoneOpe="guarani",
+            ),
+            gEmis=Emisor(
+                dRucEm="80159272-0",
+                dDVEmi=0,
+                iTipCont=2,
+                cTipReg=8,
+                dNomEmi="DE generado en ambiente de prueba - sin valor comercial ni fiscal",
+                dDirEmi="Av. Principal 123",
+                cDepEmi=16,
+                dDesDepEmi="BOQUERON",
+                cDisEmi=259,
+                dDesDisEmi="FILADELFIA",
+                cCiuEmi=6413,
+                dDesCiuEmi="COL.FERNHEIN",
+                dTelEmi="0981424007",
+                dEmailE="joanasawatzky@gmail.com",
+                gActEco=[
+                    ActividadEconomica(
+                        cActEco="69209",
+                        dDesActEco="ACTIVIDADES DE CONTABILIDAD, TENEDURÍA DE LIBROS, AUDITORIA Y ASESORIA FISCAL N.C.P.",
+                    )
+                ],
+            ),
+            gDatRec=Receptor(
+                iNatRec=1,
+                iTiOpe=1,
+                iTiContRec=2,
+                dRucRec="80090941",
+                dDVRec="0",
+                dNomRec="GIROLABS SOCIEDAD ANONIMA",
+            ),
+            gCamItem=[item],
+            gTotSub=totales,
+            gPaConEIni=CondicionOperacion(
+                iCondOpe=1,
+                dDesCondOpe="Contado",
+                gPaConEIni=[
+                    Pago(
+                        iTiPago=1,
+                        dDesTiPag="Efectivo",
+                        dMonTiPag=totales.dTotGralOpe,
+                    )
+                ],
+            ),
+        )
+
+        documentos.append(documento)
+        print(f"   ✓ Documento {i} creado (CDC: {documento.CDC})")
+
+    print(f"\n   Total: {len(documentos)} documentos creados")
+
+    # Enviar lote
+    print(f"\n3. Enviando lote de {len(documentos)} documentos...")
+
+    try:
+        respuesta = client.enviar_lote(documentos)
+
+        print(f"\n   ✓ Lote enviado!")
+        print(f"   Número de lote: {respuesta.numero_lote}")
+        print(f"   Total documentos: {respuesta.cantidad_documentos}")
+        print(f"   Aprobados: {respuesta.documentos_aprobados}")
+        print(f"   Rechazados: {respuesta.documentos_rechazados}")
+
+        print(f"\n   Detalle de documentos:")
+        for i, detalle in enumerate(respuesta.detalles, 1):
+            estado = "✓ Aprobado" if detalle.aprobado else "✗ Rechazado"
+            print(f"   {i}. {estado}")
+            print(f"      CDC: {detalle.cdc}")
+            print(f"      Mensaje: {detalle.mensaje}")
+
+        # if respuesta.numero_lote:
+        #     print(f"\n4. Consultando estado del lote...")
+        #     consulta = client.consultar_lote(respuesta.numero_lote)
+
+        #     if consulta.encontrado:
+        #         print(f"   ✓ Lote encontrado")
+        #         print(f"   Estado: {consulta.estado}")
+        #         print(f"   Documentos procesados: {consulta.cantidad_documentos}")
+        #     else:
+        #         print(f"   ✗ Lote no encontrado")
+
+    except Exception as e:
+        import traceback
+
+        print(f"   ✗ Error: {e}")
+        traceback.print_exc()
+
+    print("\n" + "=" * 70)
+    print("Resumen del Lote")
+    print("=" * 70)
+    print(f"Documentos enviados: {len(documentos)}")
+    print(f"Límite por lote: 50 documentos")
+    print("\nVentajas del envío por lote:")
+    print("- Menor tiempo de procesamiento")
+    print("- Menos peticiones HTTP")
+    print("- Procesamiento asíncrono en SIFEN")
+    print("- Ideal para facturación masiva")
     print("=" * 70)
 
 

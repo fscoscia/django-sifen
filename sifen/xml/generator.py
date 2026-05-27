@@ -93,10 +93,9 @@ class XMLGenerator:
         # ========================================
         root = etree.Element(f"{{{NS}}}rDE", nsmap=NSMAP)
 
-        # Agregar atributo xsi:schemaLocation
         root.set(
             f"{{{XSI_NS}}}schemaLocation",
-            "http://ekuatia.set.gov.py/sifen/xsd siRecepDE_v150.xsd",
+            "https://ekuatia.set.gov.py/sifen/xsd siRecepDE_v150.xsd",
         )
 
         # ========================================
