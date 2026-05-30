@@ -40,6 +40,12 @@ from sifen.models.totales import (
     Cuota,
 )
 
+# Nota de Crédito/Débito
+from sifen.models.nota_credito_debito import NotaCreditoDebito
+
+# Documento Asociado
+from sifen.models.documento_asociado import DocumentoAsociado
+
 # Documento principal
 from sifen.models.documento import DocumentoElectronico
 
@@ -67,6 +73,10 @@ __all__ = [
     "CondicionOperacion",
     "Pago",
     "Cuota",
+    # Nota Crédito/Débito
+    "NotaCreditoDebito",
+    # Documento Asociado
+    "DocumentoAsociado",
     # Documento
     "DocumentoElectronico",
 ]

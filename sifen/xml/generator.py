@@ -170,9 +170,15 @@ class XMLGenerator:
         if self.documento.gTimb.iTiDE == 1:
             self._generate_campos_fe(dtip_elem)
 
-        # E600. CONDICIÓN DE LA OPERACIÓN (gCamCond) - Debe ir ANTES de los ítems
-        # Contado o crédito, formas de pago
-        self._generate_condicion(dtip_elem)
+        # E5. CAMPOS DE NOTA DE CRÉDITO/DÉBITO (gCamNCDE)
+        # Para NCE (iTiDE=5) o NDE (iTiDE=6)
+        if self.documento.gTimb.iTiDE in [5, 6] and self.documento.gCamNCDE:
+            self._generate_campos_ncde(dtip_elem)
+
+        # E600. CONDICIÓN DE LA OPERACIÓN (gCamCond)
+        # Contado o crédito, formas de pago (no requerido para NCE/NDE)
+        if self.documento.gPaConEIni:
+            self._generate_condicion(dtip_elem)
 
         # E700-E799: Ítems (gCamItem) - Repetible
         for item in self.documento.gCamItem:
@@ -183,6 +189,14 @@ class XMLGenerator:
         # Cálculo de totales por tasa de IVA
         # ========================================
         self._generate_totales(de_elem)
+
+        # ========================================
+        # H. CAMPOS QUE IDENTIFICAN AL DOCUMENTO ASOCIADO (gCamDEAsoc)
+        # Obligatorio si iTiDE = 4, 5, 6 (Autofactura, NCE, NDE)
+        # Debe ir FUERA de gDtipDE, después de gTotSub según XSD
+        # ========================================
+        if self.documento.gTimb.iTiDE in [4, 5, 6] and self.documento.gCamDEAsoc:
+            self._generate_documento_asociado(de_elem)
 
         # ========================================
         # G. CAMPOS FUERA DEL DE - gCamFuFD
@@ -732,6 +746,109 @@ class XMLGenerator:
         # dDesIndPres - Descripción del indicador de presencia (obligatorio)
         desc_ind_pres = getattr(self.documento, "dDesIndPres", "Operación presencial")
         self._add_element(fe_elem, "dDesIndPres", desc_ind_pres)
+
+    def _generate_campos_ncde(self, parent: etree.Element):
+        """
+        Genera el grupo gCamNCDE - Campos de Nota de Crédito/Débito Electrónica.
+
+        Estructura:
+        <gCamNCDE>
+            <iMotEmi>1</iMotEmi>              ← Motivo de emisión
+            <dDesMotEmi>...</dDesMotEmi>      ← Descripción del motivo
+        </gCamNCDE>
+        """
+        ncde_elem = etree.SubElement(parent, f"{{{NS}}}gCamNCDE")
+
+        ncde = self.documento.gCamNCDE
+
+        # E401 - Motivo de emisión
+        self._add_element(ncde_elem, "iMotEmi", ncde.iMotEmi)
+
+        # E402 - Descripción del motivo
+        self._add_element(ncde_elem, "dDesMotEmi", ncde.dDesMotEmi)
+
+    def _generate_documento_asociado(self, parent: etree.Element):
+        """
+        Genera el grupo gCamDEAsoc - Campos que identifican al documento asociado.
+
+        Estructura:
+        <gCamDEAsoc>
+            <iTipDocAso>1</iTipDocAso>        ← Tipo de documento asociado
+            <dDesTipDocAso>...</dDesTipDocAso> ← Descripción
+            <dCdCDERef>...</dCdCDERef>        ← CDC (si electrónico)
+            <!-- O campos de documento impreso -->
+        </gCamDEAsoc>
+        """
+        asoc_elem = etree.SubElement(parent, f"{{{NS}}}gCamDEAsoc")
+
+        doc_asoc = self.documento.gCamDEAsoc
+
+        # H002 - Tipo de documento asociado
+        self._add_element(asoc_elem, "iTipDocAso", doc_asoc.iTipDocAso)
+
+        # H003 - Descripción del tipo
+        self._add_element(asoc_elem, "dDesTipDocAso", doc_asoc.dDesTipDocAso)
+
+        # Campos según tipo de documento
+        if doc_asoc.iTipDocAso == 1:  # Electrónico
+            # H004 - CDC del DTE referenciado
+            if doc_asoc.dCdCDERef:
+                self._add_element(asoc_elem, "dCdCDERef", doc_asoc.dCdCDERef)
+
+        elif doc_asoc.iTipDocAso == 2:  # Impreso
+            # H005 - Número de timbrado
+            if doc_asoc.dNTimDI:
+                self._add_element(asoc_elem, "dNTimDI", doc_asoc.dNTimDI)
+
+            # H006 - Establecimiento
+            if doc_asoc.dEstDocAso:
+                self._add_element(asoc_elem, "dEstDocAso", doc_asoc.dEstDocAso)
+
+            # H007 - Punto de expedición
+            if doc_asoc.dPExpDocAso:
+                self._add_element(asoc_elem, "dPExpDocAso", doc_asoc.dPExpDocAso)
+
+            # H008 - Número del documento
+            if doc_asoc.dNumDocAso:
+                self._add_element(asoc_elem, "dNumDocAso", doc_asoc.dNumDocAso)
+
+            # H009 - Tipo de documento impreso
+            if doc_asoc.iTipoDocAso:
+                self._add_element(asoc_elem, "iTipoDocAso", doc_asoc.iTipoDocAso)
+
+            # H010 - Descripción del tipo de documento impreso
+            if doc_asoc.dDTipoDocAso:
+                self._add_element(asoc_elem, "dDTipoDocAso", doc_asoc.dDTipoDocAso)
+
+            # H011 - Fecha de emisión
+            if doc_asoc.dFecEmiDI:
+                fecha_str = doc_asoc.dFecEmiDI.strftime("%Y-%m-%d")
+                self._add_element(asoc_elem, "dFecEmiDI", fecha_str)
+
+        elif doc_asoc.iTipDocAso == 3:  # Constancia Electrónica
+            # H014 - Tipo de constancia
+            if doc_asoc.iTipCons:
+                self._add_element(asoc_elem, "iTipCons", doc_asoc.iTipCons)
+
+            # H015 - Descripción del tipo de constancia
+            if doc_asoc.dDesTipCons:
+                self._add_element(asoc_elem, "dDesTipCons", doc_asoc.dDesTipCons)
+
+            # H016 - Número de constancia
+            if doc_asoc.dNumCons:
+                self._add_element(asoc_elem, "dNumCons", doc_asoc.dNumCons)
+
+            # H017 - Número de control
+            if doc_asoc.dNumControl:
+                self._add_element(asoc_elem, "dNumControl", doc_asoc.dNumControl)
+
+        # H012 - Número de comprobante de retención (opcional para todos)
+        if doc_asoc.dNumComRet:
+            self._add_element(asoc_elem, "dNumComRet", doc_asoc.dNumComRet)
+
+        # H013 - Número de resolución de crédito fiscal (opcional para todos)
+        if doc_asoc.dNumResCF:
+            self._add_element(asoc_elem, "dNumResCF", doc_asoc.dNumResCF)
 
     def _generate_condicion(self, parent: etree.Element):
         """Genera condición de operación (gCamCond)."""

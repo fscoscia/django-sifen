@@ -20,6 +20,17 @@ from sifen.models import (
     Totales,
     CondicionOperacion,
     Pago,
+    NotaCreditoDebito,
+    DocumentoAsociado,
+)
+from sifen.models.nota_credito_debito import (
+    MOTIVO_DEVOLUCION,
+    MOTIVO_AJUSTE_PRECIO,
+    DESCRIPCIONES_MOTIVOS,
+)
+from sifen.models.documento_asociado import (
+    TIPO_DOC_ASOCIADO_ELECTRONICO,
+    DESCRIPCIONES_TIPO_DOC_ASOCIADO,
 )
 from sifen.utils import (
     calcular_valor_item,
@@ -29,6 +40,13 @@ from sifen.utils import (
 )
 from sifen.models.items import IVAItem
 from sifen.models.totales import CondicionOperacion, Pago, SubtotalIVA
+from sifen.constants import (
+    TIPO_FACTURA_ELECTRONICA,
+    TIPO_NOTA_CREDITO_ELECTRONICA,
+    TIPO_NOTA_DEBITO_ELECTRONICA,
+    TIPO_NOTA_REMISION_ELECTRONICA,
+    TIPO_AUTOFACTURA_ELECTRONICA,
+)
 
 
 def enviar_sincronico_ejemplo():
@@ -257,19 +275,37 @@ def main():
     print("\n" + "=" * 70)
     print("EJEMPLOS DE USO DEL SIFEN CLIENT")
     print("=" * 70)
-    print("\nOpciones disponibles:")
-    print("1. Envío sincrónico (un documento)")
-    print("2. Envío por lote (múltiples documentos)")
-    print("3. Ejecutar ambos ejemplos")
+    print("\nTipos de Documentos Disponibles:")
+    print("=" * 70)
+    print("1. Factura Electrónica (iTiDE=1)")
+    print("2. Envío por Lote de Facturas")
+    print("3. Autofactura Electrónica (iTiDE=4)")
+    print("4. Nota de Crédito Electrónica (iTiDE=5)")
+    print("5. Nota de Débito Electrónica (iTiDE=6)")
+    print("6. Nota de Remisión Electrónica (iTiDE=7)")
+    print("=" * 70)
+    print("\nDescomenta la función que desees probar:")
     print("=" * 70)
 
-    # Por defecto ejecutar envío sincrónico
     # Descomenta la opción que desees probar:
 
+    # 1. Factura Electrónica (envío sincrónico)
     # enviar_sincronico_ejemplo()
 
-    # Para probar envío de lote, descomenta:
-    enviar_lote_ejemplo()
+    # 2. Envío por lote de facturas
+    # enviar_lote_ejemplo()
+
+    # 3. Nota de Crédito
+    enviar_nota_credito_ejemplo()
+
+    # 4. Nota de Débito
+    # enviar_nota_debito_ejemplo()
+
+    # 5. Nota de Remisión
+    # enviar_nota_remision_ejemplo()
+
+    # 6. Autofactura
+    # enviar_autofactura_ejemplo()
 
 
 def enviar_lote_ejemplo():
@@ -440,6 +476,524 @@ def enviar_lote_ejemplo():
     print("- Menos peticiones HTTP")
     print("- Procesamiento asíncrono en SIFEN")
     print("- Ideal para facturación masiva")
+    print("=" * 70)
+
+
+def enviar_nota_credito_ejemplo():
+    """Ejemplo de envío de Nota de Crédito Electrónica."""
+
+    print("\n" + "=" * 70)
+    print("Ejemplo: Nota de Crédito Electrónica")
+    print("=" * 70)
+
+    config = SifenConfig(
+        ambiente=TipoAmbiente.DEV,
+        certificado_archivo="/Users/fscoscia/Girolabs/facturacion-electronica/django-sifen/JOANA NICOLE SAWATZKY VDA DE REGIER.pfx",
+        certificado_contrasena="Sk59vkhu?!",
+        csc="ABCD0000000000000000000000000000",
+        csc_id="0001",
+    )
+
+    client = SifenClient(config)
+    print("   ✓ Cliente configurado")
+
+    import random
+
+    codigo_seguridad = str(random.randint(100000000, 999999999))
+
+    # Item con precio negativo para nota de crédito
+    cantidad = Decimal("5")
+    item = Item(
+        dCodInt="NC001",
+        dDesProSer="DEVOLUCIÓN - DOCUMENTO ELECTRÓNICO SIN VALOR COMERCIAL NI FISCAL - GENERADO EN AMBIENTE DE PRUEBA",
+        cUniMed=77,
+        dCantProSer=cantidad,
+        gValorItem=calcular_valor_item(
+            precio_unitario=Decimal("50000"),
+            cantidad=cantidad,
+            tasa_iva=10,
+        ),
+    )
+
+    totales = calcular_totales([item])
+
+    # Crear grupo de Nota de Crédito
+    nota_credito = NotaCreditoDebito(
+        iMotEmi=MOTIVO_DEVOLUCION,
+        dDesMotEmi=DESCRIPCIONES_MOTIVOS[MOTIVO_DEVOLUCION],
+    )
+
+    # IMPORTANTE: Documento Asociado - Referencia a la factura original
+    # Debes reemplazar este CDC con el de una factura real que hayas enviado previamente
+    # El CDC tiene 44 caracteres y se obtiene al enviar una factura exitosamente
+    doc_asociado = DocumentoAsociado(
+        iTipDocAso=TIPO_DOC_ASOCIADO_ELECTRONICO,  # 1 = Documento electrónico
+        dDesTipDocAso=DESCRIPCIONES_TIPO_DOC_ASOCIADO[TIPO_DOC_ASOCIADO_ELECTRONICO],
+        dCdCDERef="01800159272001001000000342026041612345678901234567890123",  # CDC de la factura original (ejemplo)
+    )
+
+    documento = DocumentoElectronico(
+        dVerFor=150,
+        gTimb=IdentificacionDE(
+            iTiDE=TIPO_NOTA_CREDITO_ELECTRONICA,
+            dDesTiDE="Nota de crédito electrónica",
+            dNumTim=80159272,
+            dEst="001",
+            dPunExp="001",
+            dNumDoc="0000037",
+            dFeIniT=datetime.strptime("2026-04-16", "%Y-%m-%d").date(),
+        ),
+        gDatGralOpe=DatosGeneralesDE(
+            dFeEmiDE=datetime.now(),
+            iTipEmi=1,
+            dDesTipEmi="Normal",
+            dCodSeg=codigo_seguridad,
+            dInfoEmi="Nota de crédito por devolución de mercadería",
+            dInfoFisc="Información de interés del Fisco respecto al DE",
+            iTImp=1,
+            dDesTImp="IVA",
+            cMoneOpe="PYG",
+            dDesMoneOpe="guarani",
+        ),
+        gEmis=Emisor(
+            dRucEm="80159272-0",
+            dDVEmi=0,
+            iTipCont=2,
+            cTipReg=8,
+            dNomEmi="DE generado en ambiente de prueba - sin valor comercial ni fiscal",
+            dDirEmi="Av. Principal 123",
+            cDepEmi=16,
+            dDesDepEmi="BOQUERON",
+            cDisEmi=259,
+            dDesDisEmi="FILADELFIA",
+            cCiuEmi=6413,
+            dDesCiuEmi="COL.FERNHEIN",
+            dTelEmi="0981424007",
+            dEmailE="joanasawatzky@gmail.com",
+            gActEco=[
+                ActividadEconomica(
+                    cActEco="69209",
+                    dDesActEco="ACTIVIDADES DE CONTABILIDAD, TENEDURÍA DE LIBROS, AUDITORIA Y ASESORIA FISCAL N.C.P.",
+                )
+            ],
+        ),
+        gDatRec=Receptor(
+            iNatRec=1,
+            iTiOpe=1,
+            iTiContRec=2,
+            dRucRec="80090941",
+            dDVRec="0",
+            dNomRec="GIROLABS SOCIEDAD ANONIMA",
+        ),
+        gCamItem=[item],
+        gTotSub=totales,
+        gCamNCDE=nota_credito,
+        gCamDEAsoc=doc_asociado,
+    )
+
+    print(f"   ✓ Nota de Crédito creada (CDC: {documento.CDC})")
+
+    try:
+        respuesta = client.enviar_documento(documento)
+
+        if respuesta.aprobado:
+            print(f"   ✓ Nota de Crédito aprobada!")
+            print(f"   CDC: {respuesta.cdc}")
+            print(f"   Protocolo: {respuesta.numero_protocolo}")
+        else:
+            print(f"   ✗ Nota de Crédito rechazada")
+            print(f"   Código: {respuesta.codigo}")
+            print(f"   Mensaje: {respuesta.mensaje}")
+    except Exception as e:
+        import traceback
+
+        print(f"   ✗ Error: {e}")
+        traceback.print_exc()
+
+    print("=" * 70)
+
+
+def enviar_nota_debito_ejemplo():
+    """Ejemplo de envío de Nota de Débito Electrónica."""
+
+    print("\n" + "=" * 70)
+    print("Ejemplo: Nota de Débito Electrónica")
+    print("=" * 70)
+
+    config = SifenConfig(
+        ambiente=TipoAmbiente.DEV,
+        certificado_archivo="/Users/fscoscia/Girolabs/facturacion-electronica/django-sifen/JOANA NICOLE SAWATZKY VDA DE REGIER.pfx",
+        certificado_contrasena="Sk59vkhu?!",
+        csc="ABCD0000000000000000000000000000",
+        csc_id="0001",
+    )
+
+    client = SifenClient(config)
+    print("   ✓ Cliente configurado")
+
+    import random
+
+    codigo_seguridad = str(random.randint(100000000, 999999999))
+
+    # Item con cargo adicional
+    cantidad = Decimal("1")
+    item = Item(
+        dCodInt="ND001",
+        dDesProSer="CARGO ADICIONAL - DOCUMENTO ELECTRÓNICO SIN VALOR COMERCIAL NI FISCAL - GENERADO EN AMBIENTE DE PRUEBA",
+        cUniMed=77,
+        dCantProSer=cantidad,
+        gValorItem=calcular_valor_item(
+            precio_unitario=Decimal("25000"),
+            cantidad=cantidad,
+            tasa_iva=10,
+        ),
+    )
+
+    totales = calcular_totales([item])
+
+    # Crear grupo de Nota de Débito
+    nota_debito = NotaCreditoDebito(
+        iMotEmi=MOTIVO_AJUSTE_PRECIO,
+        dDesMotEmi=DESCRIPCIONES_MOTIVOS[MOTIVO_AJUSTE_PRECIO],
+    )
+
+    documento = DocumentoElectronico(
+        dVerFor=150,
+        gTimb=IdentificacionDE(
+            iTiDE=TIPO_NOTA_DEBITO_ELECTRONICA,
+            dDesTiDE="Nota de débito electrónica",
+            dNumTim=80159272,
+            dEst="001",
+            dPunExp="001",
+            dNumDoc="0000038",
+            dFeIniT=datetime.strptime("2026-04-16", "%Y-%m-%d").date(),
+        ),
+        gDatGralOpe=DatosGeneralesDE(
+            dFeEmiDE=datetime.now(),
+            iTipEmi=1,
+            dDesTipEmi="Normal",
+            dCodSeg=codigo_seguridad,
+            dInfoEmi="Nota de débito por cargo adicional",
+            dInfoFisc="Información de interés del Fisco respecto al DE",
+            iTImp=1,
+            dDesTImp="IVA",
+            cMoneOpe="PYG",
+            dDesMoneOpe="guarani",
+        ),
+        gEmis=Emisor(
+            dRucEm="80159272-0",
+            dDVEmi=0,
+            iTipCont=2,
+            cTipReg=8,
+            dNomEmi="DE generado en ambiente de prueba - sin valor comercial ni fiscal",
+            dDirEmi="Av. Principal 123",
+            cDepEmi=16,
+            dDesDepEmi="BOQUERON",
+            cDisEmi=259,
+            dDesDisEmi="FILADELFIA",
+            cCiuEmi=6413,
+            dDesCiuEmi="COL.FERNHEIN",
+            dTelEmi="0981424007",
+            dEmailE="joanasawatzky@gmail.com",
+            gActEco=[
+                ActividadEconomica(
+                    cActEco="69209",
+                    dDesActEco="ACTIVIDADES DE CONTABILIDAD, TENEDURÍA DE LIBROS, AUDITORIA Y ASESORIA FISCAL N.C.P.",
+                )
+            ],
+        ),
+        gDatRec=Receptor(
+            iNatRec=1,
+            iTiOpe=1,
+            iTiContRec=2,
+            dRucRec="80090941",
+            dDVRec="0",
+            dNomRec="GIROLABS SOCIEDAD ANONIMA",
+        ),
+        gCamItem=[item],
+        gTotSub=totales,
+        gCamNCDE=nota_debito,
+    )
+
+    print(f"   ✓ Nota de Débito creada (CDC: {documento.CDC})")
+
+    try:
+        respuesta = client.enviar_documento(documento)
+
+        if respuesta.aprobado:
+            print(f"   ✓ Nota de Débito aprobada!")
+            print(f"   CDC: {respuesta.cdc}")
+            print(f"   Protocolo: {respuesta.numero_protocolo}")
+        else:
+            print(f"   ✗ Nota de Débito rechazada")
+            print(f"   Código: {respuesta.codigo}")
+            print(f"   Mensaje: {respuesta.mensaje}")
+    except Exception as e:
+        import traceback
+
+        print(f"   ✗ Error: {e}")
+        traceback.print_exc()
+
+    print("=" * 70)
+
+
+def enviar_nota_remision_ejemplo():
+    """Ejemplo de envío de Nota de Remisión Electrónica."""
+
+    print("\n" + "=" * 70)
+    print("Ejemplo: Nota de Remisión Electrónica")
+    print("=" * 70)
+
+    config = SifenConfig(
+        ambiente=TipoAmbiente.DEV,
+        certificado_archivo="/Users/fscoscia/Girolabs/facturacion-electronica/django-sifen/JOANA NICOLE SAWATZKY VDA DE REGIER.pfx",
+        certificado_contrasena="Sk59vkhu?!",
+        csc="ABCD0000000000000000000000000000",
+        csc_id="0001",
+    )
+
+    client = SifenClient(config)
+    print("   ✓ Cliente configurado")
+
+    import random
+
+    codigo_seguridad = str(random.randint(100000000, 999999999))
+
+    # Items para remisión
+    cantidad = Decimal("20")
+    item = Item(
+        dCodInt="REM001",
+        dDesProSer="MERCADERÍA EN TRÁNSITO - DOCUMENTO ELECTRÓNICO SIN VALOR COMERCIAL NI FISCAL - GENERADO EN AMBIENTE DE PRUEBA",
+        cUniMed=77,
+        dCantProSer=cantidad,
+        gValorItem=calcular_valor_item(
+            precio_unitario=Decimal("75000"),
+            cantidad=cantidad,
+            tasa_iva=10,
+        ),
+    )
+
+    totales = calcular_totales([item])
+
+    documento = DocumentoElectronico(
+        dVerFor=150,
+        gTimb=IdentificacionDE(
+            iTiDE=TIPO_NOTA_REMISION_ELECTRONICA,
+            dDesTiDE="Nota de remisión electrónica",
+            dNumTim=80159272,
+            dEst="001",
+            dPunExp="001",
+            dNumDoc="0000039",
+            dFeIniT=datetime.strptime("2026-04-16", "%Y-%m-%d").date(),
+        ),
+        gDatGralOpe=DatosGeneralesDE(
+            dFeEmiDE=datetime.now(),
+            iTipEmi=1,
+            dDesTipEmi="Normal",
+            dCodSeg=codigo_seguridad,
+            dInfoEmi="Nota de remisión para traslado de mercadería",
+            dInfoFisc="Información de interés del Fisco respecto al DE",
+            iTipTra=1,
+            dDesTipTra="Venta de mercadería",
+            iTImp=1,
+            dDesTImp="IVA",
+            cMoneOpe="PYG",
+            dDesMoneOpe="guarani",
+        ),
+        gEmis=Emisor(
+            dRucEm="80159272-0",
+            dDVEmi=0,
+            iTipCont=2,
+            cTipReg=8,
+            dNomEmi="DE generado en ambiente de prueba - sin valor comercial ni fiscal",
+            dDirEmi="Av. Principal 123",
+            cDepEmi=16,
+            dDesDepEmi="BOQUERON",
+            cDisEmi=259,
+            dDesDisEmi="FILADELFIA",
+            cCiuEmi=6413,
+            dDesCiuEmi="COL.FERNHEIN",
+            dTelEmi="0981424007",
+            dEmailE="joanasawatzky@gmail.com",
+            gActEco=[
+                ActividadEconomica(
+                    cActEco="69209",
+                    dDesActEco="ACTIVIDADES DE CONTABILIDAD, TENEDURÍA DE LIBROS, AUDITORIA Y ASESORIA FISCAL N.C.P.",
+                )
+            ],
+        ),
+        gDatRec=Receptor(
+            iNatRec=1,
+            iTiOpe=1,
+            iTiContRec=2,
+            dRucRec="80090941",
+            dDVRec="0",
+            dNomRec="GIROLABS SOCIEDAD ANONIMA",
+        ),
+        gCamItem=[item],
+        gTotSub=totales,
+        gPaConEIni=CondicionOperacion(
+            iCondOpe=1,
+            dDesCondOpe="Contado",
+            gPaConEIni=[
+                Pago(
+                    iTiPago=1,
+                    dDesTiPag="Efectivo",
+                    dMonTiPag=totales.dTotGralOpe,
+                )
+            ],
+        ),
+    )
+
+    print(f"   ✓ Nota de Remisión creada (CDC: {documento.CDC})")
+
+    try:
+        respuesta = client.enviar_documento(documento)
+
+        if respuesta.aprobado:
+            print(f"   ✓ Nota de Remisión aprobada!")
+            print(f"   CDC: {respuesta.cdc}")
+            print(f"   Protocolo: {respuesta.numero_protocolo}")
+        else:
+            print(f"   ✗ Nota de Remisión rechazada")
+            print(f"   Código: {respuesta.codigo}")
+            print(f"   Mensaje: {respuesta.mensaje}")
+    except Exception as e:
+        import traceback
+
+        print(f"   ✗ Error: {e}")
+        traceback.print_exc()
+
+    print("=" * 70)
+
+
+def enviar_autofactura_ejemplo():
+    """Ejemplo de envío de Autofactura Electrónica."""
+
+    print("\n" + "=" * 70)
+    print("Ejemplo: Autofactura Electrónica")
+    print("=" * 70)
+
+    config = SifenConfig(
+        ambiente=TipoAmbiente.DEV,
+        certificado_archivo="/Users/fscoscia/Girolabs/facturacion-electronica/django-sifen/JOANA NICOLE SAWATZKY VDA DE REGIER.pfx",
+        certificado_contrasena="Sk59vkhu?!",
+        csc="ABCD0000000000000000000000000000",
+        csc_id="0001",
+    )
+
+    client = SifenClient(config)
+    print("   ✓ Cliente configurado")
+
+    import random
+
+    codigo_seguridad = str(random.randint(100000000, 999999999))
+
+    # Item para autofactura
+    cantidad = Decimal("15")
+    item = Item(
+        dCodInt="AUTO001",
+        dDesProSer="COMPRA - DOCUMENTO ELECTRÓNICO SIN VALOR COMERCIAL NI FISCAL - GENERADO EN AMBIENTE DE PRUEBA",
+        cUniMed=77,
+        dCantProSer=cantidad,
+        gValorItem=calcular_valor_item(
+            precio_unitario=Decimal("120000"),
+            cantidad=cantidad,
+            tasa_iva=10,
+        ),
+    )
+
+    totales = calcular_totales([item])
+
+    documento = DocumentoElectronico(
+        dVerFor=150,
+        gTimb=IdentificacionDE(
+            iTiDE=TIPO_AUTOFACTURA_ELECTRONICA,
+            dDesTiDE="Autofactura electrónica",
+            dNumTim=80159272,
+            dEst="001",
+            dPunExp="001",
+            dNumDoc="0000040",
+            dFeIniT=datetime.strptime("2026-04-16", "%Y-%m-%d").date(),
+        ),
+        gDatGralOpe=DatosGeneralesDE(
+            dFeEmiDE=datetime.now(),
+            iTipEmi=1,
+            dDesTipEmi="Normal",
+            dCodSeg=codigo_seguridad,
+            dInfoEmi="Autofactura por compra a proveedor sin factura",
+            dInfoFisc="Información de interés del Fisco respecto al DE",
+            iTipTra=1,
+            dDesTipTra="Venta de mercadería",
+            iTImp=1,
+            dDesTImp="IVA",
+            cMoneOpe="PYG",
+            dDesMoneOpe="guarani",
+        ),
+        gEmis=Emisor(
+            dRucEm="80159272-0",
+            dDVEmi=0,
+            iTipCont=2,
+            cTipReg=8,
+            dNomEmi="DE generado en ambiente de prueba - sin valor comercial ni fiscal",
+            dDirEmi="Av. Principal 123",
+            cDepEmi=16,
+            dDesDepEmi="BOQUERON",
+            cDisEmi=259,
+            dDesDisEmi="FILADELFIA",
+            cCiuEmi=6413,
+            dDesCiuEmi="COL.FERNHEIN",
+            dTelEmi="0981424007",
+            dEmailE="joanasawatzky@gmail.com",
+            gActEco=[
+                ActividadEconomica(
+                    cActEco="69209",
+                    dDesActEco="ACTIVIDADES DE CONTABILIDAD, TENEDURÍA DE LIBROS, AUDITORIA Y ASESORIA FISCAL N.C.P.",
+                )
+            ],
+        ),
+        gDatRec=Receptor(
+            iNatRec=1,
+            iTiOpe=1,
+            iTiContRec=2,
+            dRucRec="80090941",
+            dDVRec="0",
+            dNomRec="GIROLABS SOCIEDAD ANONIMA",
+        ),
+        gCamItem=[item],
+        gTotSub=totales,
+        gPaConEIni=CondicionOperacion(
+            iCondOpe=1,
+            dDesCondOpe="Contado",
+            gPaConEIni=[
+                Pago(
+                    iTiPago=1,
+                    dDesTiPag="Efectivo",
+                    dMonTiPag=totales.dTotGralOpe,
+                )
+            ],
+        ),
+    )
+
+    print(f"   ✓ Autofactura creada (CDC: {documento.CDC})")
+
+    try:
+        respuesta = client.enviar_documento(documento)
+
+        if respuesta.aprobado:
+            print(f"   ✓ Autofactura aprobada!")
+            print(f"   CDC: {respuesta.cdc}")
+            print(f"   Protocolo: {respuesta.numero_protocolo}")
+        else:
+            print(f"   ✗ Autofactura rechazada")
+            print(f"   Código: {respuesta.codigo}")
+            print(f"   Mensaje: {respuesta.mensaje}")
+    except Exception as e:
+        import traceback
+
+        print(f"   ✗ Error: {e}")
+        traceback.print_exc()
+
     print("=" * 70)
 
 

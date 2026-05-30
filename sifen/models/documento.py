@@ -17,6 +17,8 @@ from sifen.models.emisor import Emisor
 from sifen.models.receptor import Receptor
 from sifen.models.items import Item
 from sifen.models.totales import Totales, CondicionOperacion
+from sifen.models.nota_credito_debito import NotaCreditoDebito
+from sifen.models.documento_asociado import DocumentoAsociado
 
 
 @dataclass
@@ -43,14 +45,20 @@ class DocumentoElectronico(SifenObject):
     # F - Totales de la operación
     gTotSub: Totales = field(metadata={"required": True})
 
-    # E600 - Condición de la operación
-    gPaConEIni: CondicionOperacion = field(metadata={"required": True})
+    # E600 - Condición de la operación (no requerido para NCE/NDE)
+    gPaConEIni: Optional[CondicionOperacion] = None
 
     # Versión del formato del DE
     dVerFor: int = field(default=150, metadata={"required": True})
 
     # E - Items de la operación
     gCamItem: List[Item] = field(default_factory=list, metadata={"required": True})
+
+    # E5 - Campos de Nota de Crédito/Débito (obligatorio si iTiDE = 5 o 6)
+    gCamNCDE: Optional[NotaCreditoDebito] = None
+
+    # H - Campos que identifican al documento asociado (obligatorio si iTiDE = 4, 5, 6)
+    gCamDEAsoc: Optional[DocumentoAsociado] = None
 
     # ID del DE (para referencia en la firma)
     Id: str = field(default="", metadata={"required": True})
@@ -257,10 +265,11 @@ class DocumentoElectronico(SifenObject):
         if not is_valid:
             return False, f"Error en totales: {error}"
 
-        # Validar condición de operación
-        is_valid, error = self.gPaConEIni.validate()
-        if not is_valid:
-            return False, f"Error en condición de operación: {error}"
+        # Validar condición de operación (si existe)
+        if self.gPaConEIni:
+            is_valid, error = self.gPaConEIni.validate()
+            if not is_valid:
+                return False, f"Error en condición de operación: {error}"
 
         return True, None
 

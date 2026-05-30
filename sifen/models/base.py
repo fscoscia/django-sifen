@@ -101,7 +101,7 @@ class IdentificacionDE(SifenObject):
     def validate(self) -> Tuple[bool, Optional[str]]:
         """Valida los campos de identificación."""
         # Validar tipo de DE
-        if self.iTiDE not in [1, 4, 5, 6, 7, 8, 9, 10]:
+        if self.iTiDE not in [1, 2, 3, 4, 5, 6, 7, 8]:
             return False, f"Tipo de DE inválido: {self.iTiDE}"
 
         # Validar establecimiento (3 dígitos)
@@ -146,8 +146,8 @@ class DatosGeneralesDE(SifenObject):
     dInfoFisc: Optional[str] = None
 
     # Campos de gOpeCom - Operación Comercial
-    # C001 - Tipo de transacción
-    iTipTra: int = field(default=1, metadata={"required": True})
+    # C001 - Tipo de transacción (obligatorio solo si iTiDE = 1 o 4)
+    iTipTra: Optional[int] = None
 
     # C002 - Descripción del tipo de transacción (opcional)
     dDesTipTra: Optional[str] = None
