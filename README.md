@@ -29,6 +29,23 @@ Librería Python para Facturación Electrónica de Paraguay (SIFEN)
   - Ejemplos de cambios comunes
   - Mejores prácticas de mantenimiento
 
+- **[Notas de Crédito](docs/NOTA_CREDITO.md)** - Guía completa para emitir notas de crédito
+  - Qué son y cuándo usarlas
+  - Motivos de emisión
+  - Documento asociado obligatorio
+  - Ejemplos completos y casos de uso
+
+- **[Notas de Débito](docs/NOTA_DEBITO.md)** - Guía completa para emitir notas de débito
+  - Qué son y cuándo usarlas
+  - Diferencias con notas de crédito
+  - Motivos de emisión (recupero de costos, intereses)
+  - Ejemplos completos y casos de uso
+
+- **[Documento Asociado](docs/DOCUMENTO_ASOCIADO.md)** - Cómo referenciar documentos previos
+  - Tipos de documento asociado (electrónico, impreso, constancia)
+  - Uso del CDC para referenciar facturas
+  - Obligatorio para NC/ND/Autofacturas
+
 ### Verificación Rápida
 
 ```bash
