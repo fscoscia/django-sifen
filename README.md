@@ -41,6 +41,13 @@ Librería Python para Facturación Electrónica de Paraguay (SIFEN)
   - Motivos de emisión (recupero de costos, intereses)
   - Ejemplos completos y casos de uso
 
+- **[Autofacturas](docs/AUTOFACTURA.md)** - Guía completa para emitir autofacturas
+  - Qué son y cuándo usarlas
+  - Compras a no contribuyentes y productores
+  - RUC del receptor = RUC del emisor
+  - Datos del vendedor en gCamAE
+  - Ejemplos completos y casos de uso
+
 - **[Documento Asociado](docs/DOCUMENTO_ASOCIADO.md)** - Cómo referenciar documentos previos
   - Tipos de documento asociado (electrónico, impreso, constancia)
   - Uso del CDC para referenciar facturas

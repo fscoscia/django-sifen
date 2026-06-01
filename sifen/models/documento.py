@@ -18,6 +18,7 @@ from sifen.models.receptor import Receptor
 from sifen.models.items import Item
 from sifen.models.totales import Totales, CondicionOperacion
 from sifen.models.nota_credito_debito import NotaCreditoDebito
+from sifen.models.autofactura import Autofactura
 from sifen.models.documento_asociado import DocumentoAsociado
 
 
@@ -53,6 +54,9 @@ class DocumentoElectronico(SifenObject):
 
     # E - Items de la operación
     gCamItem: List[Item] = field(default_factory=list, metadata={"required": True})
+
+    # E4 - Campos de Autofactura Electrónica (obligatorio si iTiDE = 4)
+    gCamAE: Optional[Autofactura] = None
 
     # E5 - Campos de Nota de Crédito/Débito (obligatorio si iTiDE = 5 o 6)
     gCamNCDE: Optional[NotaCreditoDebito] = None

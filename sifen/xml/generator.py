@@ -170,6 +170,15 @@ class XMLGenerator:
         if self.documento.gTimb.iTiDE == 1:
             self._generate_campos_fe(dtip_elem)
 
+        # E4. CAMPOS DE AUTOFACTURA ELECTRÓNICA (gCamAE)
+        # Para AFE (iTiDE=4)
+        if (
+            self.documento.gTimb.iTiDE == 4
+            and hasattr(self.documento, "gCamAE")
+            and self.documento.gCamAE
+        ):
+            self._generate_campos_autofactura(dtip_elem)
+
         # E5. CAMPOS DE NOTA DE CRÉDITO/DÉBITO (gCamNCDE)
         # Para NCE (iTiDE=5) o NDE (iTiDE=6)
         if self.documento.gTimb.iTiDE in [5, 6] and self.documento.gCamNCDE:
@@ -746,6 +755,104 @@ class XMLGenerator:
         # dDesIndPres - Descripción del indicador de presencia (obligatorio)
         desc_ind_pres = getattr(self.documento, "dDesIndPres", "Operación presencial")
         self._add_element(fe_elem, "dDesIndPres", desc_ind_pres)
+
+    def _generate_campos_autofactura(self, parent: etree.Element):
+        """
+        Genera el grupo gCamAE - Campos de Autofactura Electrónica.
+
+        Estructura:
+        <gCamAE>
+            <iNatVen>1</iNatVen>              ← Naturaleza del vendedor
+            <dDesNatVen>...</dDesNatVen>      ← Descripción
+            <iTipIDVen>1</iTipIDVen>          ← Tipo de documento
+            <dDTipIDVen>...</dDTipIDVen>      ← Descripción tipo doc
+            <dNumIDVen>...</dNumIDVen>        ← Número de documento
+            <dNomVen>...</dNomVen>            ← Nombre del vendedor
+            <dDirVen>...</dDirVen>            ← Dirección del vendedor
+            ... (campos opcionales de ubicación)
+            <dDirProv>...</dDirProv>          ← Lugar de la transacción
+            ... (campos opcionales de ubicación de transacción)
+        </gCamAE>
+        """
+        ae_elem = etree.SubElement(parent, f"{{{NS}}}gCamAE")
+
+        ae = self.documento.gCamAE
+
+        # E301 - Naturaleza del vendedor
+        self._add_element(ae_elem, "iNatVen", ae.iNatVen)
+
+        # E302 - Descripción de la naturaleza del vendedor
+        self._add_element(ae_elem, "dDesNatVen", ae.dDesNatVen)
+
+        # E304 - Tipo de documento de identidad del vendedor
+        self._add_element(ae_elem, "iTipIDVen", ae.iTipIDVen)
+
+        # E305 - Descripción del tipo de documento
+        self._add_element(ae_elem, "dDTipIDVen", ae.dDTipIDVen)
+
+        # E306 - Número de documento de identidad
+        self._add_element(ae_elem, "dNumIDVen", ae.dNumIDVen)
+
+        # E307 - Nombre y apellido del vendedor
+        self._add_element(ae_elem, "dNomVen", ae.dNomVen)
+
+        # E308 - Dirección del vendedor
+        self._add_element(ae_elem, "dDirVen", ae.dDirVen)
+
+        # E309 - Número de casa del vendedor (opcional)
+        if ae.dNumCasVen is not None:
+            self._add_element(ae_elem, "dNumCasVen", ae.dNumCasVen)
+
+        # E310 - Código del departamento del vendedor (opcional)
+        if ae.cDepVen is not None:
+            self._add_element(ae_elem, "cDepVen", ae.cDepVen)
+
+        # E311 - Descripción del departamento del vendedor (opcional)
+        if ae.dDesDepVen is not None:
+            self._add_element(ae_elem, "dDesDepVen", ae.dDesDepVen)
+
+        # E312 - Código del distrito del vendedor (opcional)
+        if ae.cDisVen is not None:
+            self._add_element(ae_elem, "cDisVen", ae.cDisVen)
+
+        # E313 - Descripción del distrito del vendedor (opcional)
+        if ae.dDesDisVen is not None:
+            self._add_element(ae_elem, "dDesDisVen", ae.dDesDisVen)
+
+        # E314 - Código de la ciudad del vendedor (opcional)
+        if ae.cCiuVen is not None:
+            self._add_element(ae_elem, "cCiuVen", ae.cCiuVen)
+
+        # E315 - Descripción de la ciudad del vendedor (opcional)
+        if ae.dDesCiuVen is not None:
+            self._add_element(ae_elem, "dDesCiuVen", ae.dDesCiuVen)
+
+        # E316 - Lugar de la transacción (dirección donde se provee el servicio/producto)
+        self._add_element(ae_elem, "dDirProv", ae.dDirProv)
+
+        # E317 - Código del departamento donde se realiza la transacción (opcional)
+        if ae.cDepProv is not None:
+            self._add_element(ae_elem, "cDepProv", ae.cDepProv)
+
+        # E318 - Descripción del departamento de transacción (opcional)
+        if ae.dDesDepProv is not None:
+            self._add_element(ae_elem, "dDesDepProv", ae.dDesDepProv)
+
+        # E319 - Código del distrito de transacción (opcional)
+        if ae.cDisProv is not None:
+            self._add_element(ae_elem, "cDisProv", ae.cDisProv)
+
+        # E320 - Descripción del distrito de transacción (opcional)
+        if ae.dDesDisProv is not None:
+            self._add_element(ae_elem, "dDesDisProv", ae.dDesDisProv)
+
+        # E321 - Código de la ciudad de transacción (opcional)
+        if ae.cCiuProv is not None:
+            self._add_element(ae_elem, "cCiuProv", ae.cCiuProv)
+
+        # E322 - Descripción de la ciudad de transacción (opcional)
+        if ae.dDesCiuProv is not None:
+            self._add_element(ae_elem, "dDesCiuProv", ae.dDesCiuProv)
 
     def _generate_campos_ncde(self, parent: etree.Element):
         """

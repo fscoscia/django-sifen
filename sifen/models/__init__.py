@@ -43,6 +43,9 @@ from sifen.models.totales import (
 # Nota de Crédito/Débito
 from sifen.models.nota_credito_debito import NotaCreditoDebito
 
+# Autofactura
+from sifen.models.autofactura import Autofactura
+
 # Documento Asociado
 from sifen.models.documento_asociado import DocumentoAsociado
 
@@ -75,6 +78,8 @@ __all__ = [
     "Cuota",
     # Nota Crédito/Débito
     "NotaCreditoDebito",
+    # Autofactura
+    "Autofactura",
     # Documento Asociado
     "DocumentoAsociado",
     # Documento
