@@ -46,6 +46,18 @@ from sifen.models.nota_credito_debito import NotaCreditoDebito
 # Autofactura
 from sifen.models.autofactura import Autofactura
 
+# Nota de Remisión
+from sifen.models.nota_remision import NotaRemision
+
+# Transporte
+from sifen.models.transporte import (
+    Transporte,
+    LocalSalida,
+    LocalEntrega,
+    VehiculoTraslado,
+    Transportista,
+)
+
 # Documento Asociado
 from sifen.models.documento_asociado import DocumentoAsociado
 
@@ -80,6 +92,14 @@ __all__ = [
     "NotaCreditoDebito",
     # Autofactura
     "Autofactura",
+    # Nota de Remisión
+    "NotaRemision",
+    # Transporte
+    "Transporte",
+    "LocalSalida",
+    "LocalEntrega",
+    "VehiculoTraslado",
+    "Transportista",
     # Documento Asociado
     "DocumentoAsociado",
     # Documento

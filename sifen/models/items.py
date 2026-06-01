@@ -127,8 +127,8 @@ class Item(SifenObject):
     # E610 - Cantidad
     dCantProSer: Decimal = field(metadata={"required": True})
 
-    # E700 - Campos de valor del ítem
-    gValorItem: ValorItem = field(metadata={"required": True})
+    # E700 - Campos de valor del ítem (opcional para nota de remisión iTiDE=7)
+    gValorItem: Optional[ValorItem] = field(default=None, metadata={"required": False})
 
     # E602 - Código del producto SIFEN (opcional)
     dParAranc: Optional[str] = None

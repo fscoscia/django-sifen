@@ -19,6 +19,8 @@ from sifen.models.items import Item
 from sifen.models.totales import Totales, CondicionOperacion
 from sifen.models.nota_credito_debito import NotaCreditoDebito
 from sifen.models.autofactura import Autofactura
+from sifen.models.nota_remision import NotaRemision
+from sifen.models.transporte import Transporte
 from sifen.models.documento_asociado import DocumentoAsociado
 
 
@@ -60,6 +62,12 @@ class DocumentoElectronico(SifenObject):
 
     # E5 - Campos de Nota de Crédito/Débito (obligatorio si iTiDE = 5 o 6)
     gCamNCDE: Optional[NotaCreditoDebito] = None
+
+    # E6 - Campos de Nota de Remisión Electrónica (obligatorio si iTiDE = 7)
+    gCamNRE: Optional[NotaRemision] = None
+
+    # E10 - Campos que describen el transporte de las mercaderías (obligatorio si iTiDE = 7)
+    gTransp: Optional[Transporte] = None
 
     # H - Campos que identifican al documento asociado (obligatorio si iTiDE = 4, 5, 6)
     gCamDEAsoc: Optional[DocumentoAsociado] = None

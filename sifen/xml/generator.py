@@ -184,6 +184,11 @@ class XMLGenerator:
         if self.documento.gTimb.iTiDE in [5, 6] and self.documento.gCamNCDE:
             self._generate_campos_ncde(dtip_elem)
 
+        # E6. CAMPOS DE NOTA DE REMISIÓN ELECTRÓNICA (gCamNRE)
+        # Para NRE (iTiDE=7)
+        if self.documento.gTimb.iTiDE == 7 and self.documento.gCamNRE:
+            self._generate_campos_nre(dtip_elem)
+
         # E600. CONDICIÓN DE LA OPERACIÓN (gCamCond)
         # Contado o crédito, formas de pago (no requerido para NCE/NDE)
         if self.documento.gPaConEIni:
@@ -193,11 +198,18 @@ class XMLGenerator:
         for item in self.documento.gCamItem:
             self._generate_item(dtip_elem, item)
 
+        # E10. CAMPOS QUE DESCRIBEN EL TRANSPORTE (gTransp)
+        # Obligatorio para NRE (iTiDE=7) - Debe ir después de los ítems
+        if self.documento.gTimb.iTiDE == 7 and self.documento.gTransp:
+            self._generate_transporte(dtip_elem)
+
         # ========================================
         # F. TOTALES Y SUBTOTALES (gTotSub)
         # Cálculo de totales por tasa de IVA
+        # NO incluir para iTiDE=7 (Nota de Remisión)
         # ========================================
-        self._generate_totales(de_elem)
+        if self.documento.gTimb.iTiDE != 7:
+            self._generate_totales(de_elem)
 
         # ========================================
         # H. CAMPOS QUE IDENTIFICAN AL DOCUMENTO ASOCIADO (gCamDEAsoc)
@@ -314,8 +326,9 @@ class XMLGenerator:
             dat_elem, "dFeEmiDE", self._format_datetime(gDatGralOpe.dFeEmiDE)
         )
 
-        # gOpeCom - Operación Comercial (obligatorio)
-        self._generate_operacion_comercial(dat_elem)
+        # gOpeCom - Operación Comercial (NO incluir para iTiDE=7 - Nota de Remisión)
+        if self.documento.gTimb.iTiDE != 7:
+            self._generate_operacion_comercial(dat_elem)
 
         # gEmis - Emisor
         self._generate_emisor(dat_elem)
@@ -563,8 +576,9 @@ class XMLGenerator:
             item_elem, "dCantProSer", self._format_decimal(item.dCantProSer, 4)
         )
 
-        # gValorItem
-        self._generate_valor_item(item_elem, item.gValorItem)
+        # gValorItem (no incluir para nota de remisión iTiDE=7)
+        if item.gValorItem is not None:
+            self._generate_valor_item(item_elem, item.gValorItem)
 
     def _generate_valor_item(self, parent: etree.Element, valor_item):
         """Genera valores del ítem (gValorItem)."""
@@ -873,6 +887,275 @@ class XMLGenerator:
 
         # E402 - Descripción del motivo
         self._add_element(ncde_elem, "dDesMotEmi", ncde.dDesMotEmi)
+
+    def _generate_campos_nre(self, parent: etree.Element):
+        """
+        Genera el grupo gCamNRE - Campos de Nota de Remisión Electrónica.
+
+        Estructura:
+        <gCamNRE>
+            <iMotEmiNR>1</iMotEmiNR>              ← Motivo de emisión
+            <dDesMotEmiNR>...</dDesMotEmiNR>      ← Descripción del motivo
+            <iRespEmiNR>1</iRespEmiNR>            ← Responsable de la emisión
+            <dDesRespEmiNR>...</dDesRespEmiNR>    ← Descripción del responsable
+            <dKmR>150</dKmR>                      ← Kilómetros estimados (opcional)
+            <dFecEm>2026-06-15</dFecEm>           ← Fecha futura de emisión (opcional)
+        </gCamNRE>
+        """
+        nre_elem = etree.SubElement(parent, f"{{{NS}}}gCamNRE")
+
+        nre = self.documento.gCamNRE
+
+        # E501 - Motivo de emisión
+        self._add_element(nre_elem, "iMotEmiNR", nre.iMotEmiNR)
+
+        # E502 - Descripción del motivo de emisión
+        self._add_element(nre_elem, "dDesMotEmiNR", nre.dDesMotEmiNR)
+
+        # E503 - Responsable de la emisión
+        self._add_element(nre_elem, "iRespEmiNR", nre.iRespEmiNR)
+
+        # E504 - Descripción del responsable
+        self._add_element(nre_elem, "dDesRespEmiNR", nre.dDesRespEmiNR)
+
+        # E505 - Kilómetros estimados de recorrido (opcional)
+        if nre.dKmR is not None:
+            self._add_element(nre_elem, "dKmR", nre.dKmR)
+
+        # E506 - Fecha futura de emisión de la factura (opcional)
+        if nre.dFecEm is not None:
+            # Formato: AAAA-MM-DD
+            self._add_element(nre_elem, "dFecEm", nre.dFecEm.strftime("%Y-%m-%d"))
+
+    def _generate_transporte(self, parent: etree.Element):
+        """
+        Genera el grupo gTransp - Campos que describen el transporte de las mercaderías.
+
+        Estructura:
+        <gTransp>
+            <iTipTrans>1</iTipTrans>              ← Tipo de transporte
+            <dDesTipTrans>...</dDesTipTrans>      ← Descripción del tipo
+            <iModTrans>1</iModTrans>              ← Modalidad del transporte
+            <dDesModTrans>...</dDesModTrans>      ← Descripción de la modalidad
+            <iRespFlete>1</iRespFlete>            ← Responsable del costo del flete
+        </gTransp>
+        """
+        transp_elem = etree.SubElement(parent, f"{{{NS}}}gTransp")
+
+        transp = self.documento.gTransp
+
+        # E901 - Tipo de transporte
+        self._add_element(transp_elem, "iTipTrans", transp.iTipTrans)
+
+        # E902 - Descripción del tipo de transporte
+        self._add_element(transp_elem, "dDesTipTrans", transp.dDesTipTrans)
+
+        # E903 - Modalidad del transporte
+        self._add_element(transp_elem, "iModTrans", transp.iModTrans)
+
+        # E904 - Descripción de la modalidad del transporte
+        self._add_element(transp_elem, "dDesModTrans", transp.dDesModTrans)
+
+        # E905 - Responsable del costo del flete
+        self._add_element(transp_elem, "iRespFlete", transp.iRespFlete)
+
+        # E906 - Condición de la negociación (opcional)
+        if transp.cCondNeg is not None:
+            self._add_element(transp_elem, "cCondNeg", transp.cCondNeg)
+
+        # E907 - Número de manifiesto (opcional)
+        if transp.dNuManif is not None:
+            self._add_element(transp_elem, "dNuManif", transp.dNuManif)
+
+        # E908 - Número de despacho de importación (opcional)
+        if transp.dNuDespImp is not None:
+            self._add_element(transp_elem, "dNuDespImp", transp.dNuDespImp)
+
+        # E909 - Fecha estimada de inicio de traslado (opcional)
+        if transp.dIniTras is not None:
+            self._add_element(
+                transp_elem, "dIniTras", transp.dIniTras.strftime("%Y-%m-%d")
+            )
+
+        # E910 - Fecha estimada de fin de traslado (opcional)
+        if transp.dFinTras is not None:
+            self._add_element(
+                transp_elem, "dFinTras", transp.dFinTras.strftime("%Y-%m-%d")
+            )
+
+        # E911 - Código del país de destino (opcional)
+        if transp.cPaisDest is not None:
+            self._add_element(transp_elem, "cPaisDest", transp.cPaisDest)
+
+        # E912 - Descripción del país de destino (opcional)
+        if transp.dDesPaisDest is not None:
+            self._add_element(transp_elem, "dDesPaisDest", transp.dDesPaisDest)
+
+        # E10.1 - Local de salida (gCamSal) - Obligatorio para iTiDE=7
+        if transp.gCamSal is not None:
+            self._generate_local_salida(transp_elem, transp.gCamSal)
+
+        # E10.2 - Locales de entrega (gCamEnt) - Obligatorio para iTiDE=7, repetible
+        for local_ent in transp.gCamEnt:
+            self._generate_local_entrega(transp_elem, local_ent)
+
+        # E10.3 - Vehículos de traslado (gVehTras) - Obligatorio para iTiDE=7, repetible hasta 4
+        for vehiculo in transp.gVehTras:
+            self._generate_vehiculo_traslado(transp_elem, vehiculo)
+
+        # E10.4 - Transportista (gCamTrans) - Obligatorio para iTiDE=7
+        if transp.gCamTrans is not None:
+            self._generate_transportista(transp_elem, transp.gCamTrans)
+
+    def _generate_local_salida(self, parent: etree.Element, local_sal):
+        """Genera el grupo gCamSal - Local de salida."""
+        sal_elem = etree.SubElement(parent, f"{{{NS}}}gCamSal")
+
+        self._add_element(sal_elem, "dDirLocSal", local_sal.dDirLocSal)
+        self._add_element(sal_elem, "dNumCasSal", local_sal.dNumCasSal)
+
+        if local_sal.dComp1Sal is not None:
+            self._add_element(sal_elem, "dComp1Sal", local_sal.dComp1Sal)
+        if local_sal.dComp2Sal is not None:
+            self._add_element(sal_elem, "dComp2Sal", local_sal.dComp2Sal)
+
+        self._add_element(sal_elem, "cDepSal", local_sal.cDepSal)
+        self._add_element(sal_elem, "dDesDepSal", local_sal.dDesDepSal)
+
+        if local_sal.cDisSal is not None:
+            self._add_element(sal_elem, "cDisSal", local_sal.cDisSal)
+        if local_sal.dDesDisSal is not None:
+            self._add_element(sal_elem, "dDesDisSal", local_sal.dDesDisSal)
+
+        self._add_element(sal_elem, "cCiuSal", local_sal.cCiuSal)
+        self._add_element(sal_elem, "dDesCiuSal", local_sal.dDesCiuSal)
+
+        if local_sal.dTelSal is not None:
+            self._add_element(sal_elem, "dTelSal", local_sal.dTelSal)
+
+    def _generate_local_entrega(self, parent: etree.Element, local_ent):
+        """Genera el grupo gCamEnt - Local de entrega."""
+        ent_elem = etree.SubElement(parent, f"{{{NS}}}gCamEnt")
+
+        self._add_element(ent_elem, "dDirLocEnt", local_ent.dDirLocEnt)
+        self._add_element(ent_elem, "dNumCasEnt", local_ent.dNumCasEnt)
+
+        if local_ent.dComp1Ent is not None:
+            self._add_element(ent_elem, "dComp1Ent", local_ent.dComp1Ent)
+        if local_ent.dComp2Ent is not None:
+            self._add_element(ent_elem, "dComp2Ent", local_ent.dComp2Ent)
+
+        self._add_element(ent_elem, "cDepEnt", local_ent.cDepEnt)
+        self._add_element(ent_elem, "dDesDepEnt", local_ent.dDesDepEnt)
+
+        if local_ent.cDisEnt is not None:
+            self._add_element(ent_elem, "cDisEnt", local_ent.cDisEnt)
+        if local_ent.dDesDisEnt is not None:
+            self._add_element(ent_elem, "dDesDisEnt", local_ent.dDesDisEnt)
+
+        self._add_element(ent_elem, "cCiuEnt", local_ent.cCiuEnt)
+        self._add_element(ent_elem, "dDesCiuEnt", local_ent.dDesCiuEnt)
+
+        if local_ent.dTelEnt is not None:
+            self._add_element(ent_elem, "dTelEnt", local_ent.dTelEnt)
+
+    def _generate_vehiculo_traslado(self, parent: etree.Element, vehiculo):
+        """Genera el grupo gVehTras - Vehículo de traslado."""
+        veh_elem = etree.SubElement(parent, f"{{{NS}}}gVehTras")
+
+        # E961 - Tipo de vehículo
+        self._add_element(veh_elem, "dTiVehTras", vehiculo.dTiVehTras)
+
+        # E962 - Marca
+        self._add_element(veh_elem, "dMarVeh", vehiculo.dMarVeh)
+
+        # E967 - Tipo de identificación del vehículo (opcional)
+        if vehiculo.dTipIdenVeh is not None:
+            self._add_element(veh_elem, "dTipIdenVeh", vehiculo.dTipIdenVeh)
+
+        # E963 - Número de identificación del vehículo (opcional)
+        if vehiculo.dNroIDVeh is not None:
+            self._add_element(veh_elem, "dNroIDVeh", vehiculo.dNroIDVeh)
+
+        # E964 - Datos adicionales del vehículo (opcional)
+        if vehiculo.dAdicVeh is not None:
+            self._add_element(veh_elem, "dAdicVeh", vehiculo.dAdicVeh)
+
+        # E965 - Número de matrícula del vehículo (opcional)
+        if vehiculo.dNroMatVeh is not None:
+            self._add_element(veh_elem, "dNroMatVeh", vehiculo.dNroMatVeh)
+
+        # E966 - Número de vuelo (opcional)
+        if vehiculo.dNroVuelo is not None:
+            self._add_element(veh_elem, "dNroVuelo", vehiculo.dNroVuelo)
+
+    def _generate_transportista(self, parent: etree.Element, transportista):
+        """Genera el grupo gCamTrans - Transportista."""
+        trans_elem = etree.SubElement(parent, f"{{{NS}}}gCamTrans")
+
+        # E981 - Naturaleza del transportista
+        self._add_element(trans_elem, "iNatTrans", transportista.iNatTrans)
+
+        # E982 - Nombre o razón social
+        self._add_element(trans_elem, "dNomTrans", transportista.dNomTrans)
+
+        # E983 - RUC del transportista (opcional)
+        if transportista.dRucTrans is not None:
+            self._add_element(trans_elem, "dRucTrans", transportista.dRucTrans)
+
+        # E984 - Dígito verificador (opcional)
+        if transportista.dDVTrans is not None:
+            self._add_element(trans_elem, "dDVTrans", transportista.dDVTrans)
+
+        # E985 - Tipo de documento de identidad (opcional)
+        if transportista.iTipIDTrans is not None:
+            self._add_element(trans_elem, "iTipIDTrans", transportista.iTipIDTrans)
+
+        # E986 - Descripción del tipo de documento (opcional)
+        if transportista.dDTipIDTrans is not None:
+            self._add_element(trans_elem, "dDTipIDTrans", transportista.dDTipIDTrans)
+
+        # E987 - Número de documento (opcional)
+        if transportista.dNumIDTrans is not None:
+            self._add_element(trans_elem, "dNumIDTrans", transportista.dNumIDTrans)
+
+        # E988 - Nacionalidad (opcional)
+        if transportista.cNacTrans is not None:
+            self._add_element(trans_elem, "cNacTrans", transportista.cNacTrans)
+
+        # E989 - Descripción de la nacionalidad (opcional)
+        if transportista.dDesNacTrans is not None:
+            self._add_element(trans_elem, "dDesNacTrans", transportista.dDesNacTrans)
+
+        # E990 - Número de documento del chofer
+        self._add_element(trans_elem, "dNumIDChof", transportista.dNumIDChof)
+
+        # E991 - Nombre del chofer
+        self._add_element(trans_elem, "dNomChof", transportista.dNomChof)
+
+        # E992 - Domicilio fiscal (opcional)
+        if transportista.dDomFisc is not None:
+            self._add_element(trans_elem, "dDomFisc", transportista.dDomFisc)
+
+        # E993 - Dirección del chofer (opcional)
+        if transportista.dDirChof is not None:
+            self._add_element(trans_elem, "dDirChof", transportista.dDirChof)
+
+        # E994 - Nombre del agente (opcional)
+        if transportista.dNombAg is not None:
+            self._add_element(trans_elem, "dNombAg", transportista.dNombAg)
+
+        # E995 - RUC del agente (opcional)
+        if transportista.dRucAg is not None:
+            self._add_element(trans_elem, "dRucAg", transportista.dRucAg)
+
+        # E996 - DV del agente (opcional)
+        if transportista.dDVAg is not None:
+            self._add_element(trans_elem, "dDVAg", transportista.dDVAg)
+
+        # E997 - Dirección del agente (opcional)
+        if transportista.dDirAge is not None:
+            self._add_element(trans_elem, "dDirAge", transportista.dDirAge)
 
     def _generate_documento_asociado(self, parent: etree.Element):
         """
