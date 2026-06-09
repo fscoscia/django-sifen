@@ -367,9 +367,13 @@ class SifenClient:
         # Crear evento de cancelación
         evento_canc = EventoCancelacion(mOtEve=motivo)
 
+        # Generar ID del evento numérico (1-10 caracteres según manual)
+        # Usar timestamp de 10 dígitos (segundos desde epoch)
+        evento_id = str(int(datetime.now().timestamp()))[:10]
+
         # Crear gestión de evento
         evento = GestionEvento(
-            Id=f"EVE{datetime.now().strftime('%Y%m%d%H%M%S')}",
+            Id=evento_id,
             dFecFirma=datetime.now(),
             iTipEve=TIPO_EVENTO_CANCELACION,
             dDesTipEve="Cancelación",
@@ -388,10 +392,35 @@ class SifenClient:
         # Generar XML
         xml_string = generate_evento_xml(evento)
 
-        # Firmar
-        root = etree.fromstring(xml_string.encode("utf-8"))
+        # Debug: mostrar XML generado
+        print("\n" + "=" * 70)
+        print("DEBUG: XML del Evento ANTES de firmar")
+        print("=" * 70)
+        print(xml_string)
+        print("=" * 70 + "\n")
+
+        # Firmar solo rEve (no todo rGesEve)
+        # Parsear el XML generado
+        root = etree.fromstring(xml_string.encode("utf-8"))  # root = rGesEve
+
+        # Encontrar el elemento rEve dentro de rGesEve
+        r_eve = root.find("rEve")
+        if r_eve is None:
+            r_eve = root.find(".//{http://ekuatia.set.gov.py/sifen/xsd}rEve")
+
+        if r_eve is None:
+            raise Exception("No se encontró el elemento rEve para firmar")
+
+        # Firmar rEve (la firma se agregará como hermano de rEve dentro de rGesEve)
         signed_root = sign_xml_element(root, self.config, evento.Id)
         xml_firmado = etree.tostring(signed_root, encoding="unicode")
+
+        # Debug: mostrar XML firmado
+        print("\n" + "=" * 70)
+        print("DEBUG: XML del Evento DESPUÉS de firmar")
+        print("=" * 70)
+        print(xml_firmado)
+        print("=" * 70 + "\n")
 
         # Enviar a SIFEN
         return recibir_evento(self.config, xml_firmado)
@@ -419,7 +448,7 @@ class SifenClient:
         evento_conf = EventoConformidad(mOtEve=motivo)
 
         evento = GestionEvento(
-            Id=f"EVE{datetime.now().strftime('%Y%m%d%H%M%S')}",
+            Id="1",
             dFecFirma=datetime.now(),
             iTipEve=TIPO_EVENTO_CONFORMIDAD,
             dDesTipEve="Conformidad",
@@ -459,7 +488,7 @@ class SifenClient:
         evento_disconf = EventoDisconformidad(mOtEve=motivo)
 
         evento = GestionEvento(
-            Id=f"EVE{datetime.now().strftime('%Y%m%d%H%M%S')}",
+            Id="1",
             dFecFirma=datetime.now(),
             iTipEve=TIPO_EVENTO_DISCONFORMIDAD,
             dDesTipEve="Disconformidad",
@@ -475,6 +504,125 @@ class SifenClient:
         xml_firmado = etree.tostring(signed_root, encoding="unicode")
 
         return recibir_evento(self.config, xml_firmado)
+
+    def enviar_desconocimiento(
+        self, cdc: str, motivo: str
+    ) -> "RespuestaRecepcionEvento":
+        """
+        Envía desconocimiento de un documento.
+
+        Args:
+            cdc: CDC del documento.
+            motivo: Motivo del desconocimiento.
+
+        Returns:
+            Respuesta de SIFEN.
+        """
+        from sifen.models.eventos import GestionEvento, EventoDesconocimiento
+        from sifen.xml.generator_evento import XMLEventoGenerator
+        from sifen.crypto import sign_xml_element
+        from sifen.services import recibir_evento, TIPO_EVENTO_DESCONOCIMIENTO
+        from lxml import etree
+        from datetime import datetime
+
+        evento_desc = EventoDesconocimiento(mOtEve=motivo)
+
+        evento = GestionEvento(
+            Id="1",
+            dFecFirma=datetime.now(),
+            iTipEve=TIPO_EVENTO_DESCONOCIMIENTO,
+            dDesTipEve="Desconocimiento",
+            Id_CDC=cdc,
+            mOtEve=motivo,
+            gGroupGesEve=evento_desc,
+        )
+
+        # Generar, firmar y enviar
+        generator = XMLEventoGenerator()
+        xml_string = generator.generate(evento)
+        root = etree.fromstring(xml_string.encode("utf-8"))
+        signed_root = sign_xml_element(root, self.config, evento.Id)
+        xml_firmado = etree.tostring(signed_root, encoding="unicode")
+
+        return recibir_evento(self.config, xml_firmado)
+
+    def inutilizar_numeracion(
+        self,
+        motivo: str,
+        timbrado: int,
+        establecimiento: str,
+        punto_expedicion: str,
+        numero_inicial: str,
+        numero_final: str,
+        tipo_documento: int,
+    ) -> "RespuestaRecepcionEvento":
+        """
+        Inutiliza un rango de numeración de documentos.
+
+        Args:
+            motivo: Motivo de la inutilización.
+            timbrado: Número de timbrado.
+            establecimiento: Establecimiento (3 dígitos).
+            punto_expedicion: Punto de expedición (3 dígitos).
+            numero_inicial: Número inicial del rango (7 dígitos).
+            numero_final: Número final del rango (7 dígitos).
+            tipo_documento: Tipo de documento electrónico (1-8).
+
+        Returns:
+            Respuesta de SIFEN.
+        """
+        from sifen.models.eventos import GestionEvento, EventoInutilizacion
+        from sifen.xml.generator_evento import XMLEventoGenerator
+        from sifen.crypto import sign_xml_element
+        from sifen.services import recibir_evento, TIPO_EVENTO_INUTILIZACION
+        from lxml import etree
+        from datetime import datetime
+
+        evento_inu = EventoInutilizacion(
+            mOtEve=motivo,
+            dNumTim=timbrado,
+            dEst=establecimiento,
+            dPunExp=punto_expedicion,
+            dNumIn=numero_inicial,
+            dNumFin=numero_final,
+            iTiDE=tipo_documento,
+        )
+
+        # Generar CDC ficticio para inutilización
+        cdc_ficticio = "0" * 44
+
+        evento = GestionEvento(
+            Id="1",
+            dFecFirma=datetime.now(),
+            iTipEve=TIPO_EVENTO_INUTILIZACION,
+            dDesTipEve="Inutilización",
+            Id_CDC=cdc_ficticio,
+            mOtEve=motivo,
+            gGroupGesEve=evento_inu,
+        )
+
+        # Generar, firmar y enviar
+        generator = XMLEventoGenerator()
+        xml_string = generator.generate(evento)
+        root = etree.fromstring(xml_string.encode("utf-8"))
+        signed_root = sign_xml_element(root, self.config, evento.Id)
+        xml_firmado = etree.tostring(signed_root, encoding="unicode")
+
+        return recibir_evento(self.config, xml_firmado)
+
+    def enviar_lote_eventos(self, eventos_xml: list) -> "RespuestaRecepcionLoteEventos":
+        """
+        Envía un lote de hasta 15 eventos a SIFEN.
+
+        Args:
+            eventos_xml: Lista de XMLs de eventos firmados (máximo 15).
+
+        Returns:
+            Respuesta de SIFEN con el estado de cada evento.
+        """
+        from sifen.services import recibir_lote_eventos
+
+        return recibir_lote_eventos(self.config, eventos_xml)
 
     def validar_firma_xml(self, xml: str) -> "SignatureValidationResult":
         """

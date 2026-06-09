@@ -19,7 +19,7 @@ from sifen.crypto.keystore import load_pfx_certificate
 
 # Namespaces XML
 DSIG_NS = "http://www.w3.org/2000/09/xmldsig#"
-# No usar prefijo ds:, solo xmlns por defecto
+# NO usar prefijo, solo namespace por defecto según ejemplo oficial
 NSMAP = {None: DSIG_NS}
 
 
@@ -131,7 +131,7 @@ class XMLSigner:
         """
         signed_info = etree.SubElement(signature_elem, f"{{{DSIG_NS}}}SignedInfo")
 
-        # CanonicalizationMethod
+        # CanonicalizationMethod - usar Exclusive C14N según ejemplo oficial de eventos
         c14n_method = etree.SubElement(
             signed_info,
             f"{{{DSIG_NS}}}CanonicalizationMethod",
@@ -160,7 +160,7 @@ class XMLSigner:
             Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature",
         )
 
-        # Transform 2: Exclusive Canonicalization
+        # Transform 2: Exclusive C14N (diferente del CanonicalizationMethod)
         etree.SubElement(
             transforms,
             f"{{{DSIG_NS}}}Transform",
@@ -202,7 +202,7 @@ class XMLSigner:
         if not referenced_elem:
             raise SignatureException(f"No se encontró elemento con ID '{reference_id}'")
 
-        # Canonicalizar el elemento
+        # Canonicalizar el elemento usando Exclusive C14N (debe coincidir con Transform)
         c14n_xml = etree.tostring(
             referenced_elem[0], method="c14n", exclusive=True, with_comments=False
         )
@@ -224,7 +224,7 @@ class XMLSigner:
         Returns:
             Firma en bytes.
         """
-        # Canonicalizar SignedInfo
+        # Canonicalizar SignedInfo usando Exclusive C14N según CanonicalizationMethod
         c14n_signed_info = etree.tostring(
             signed_info, method="c14n", exclusive=True, with_comments=False
         )
@@ -391,4 +391,3 @@ def update_qr_after_signature(
 
     # 8. Actualizar el elemento dCarQR
     dcar_qr_elem.text = nueva_url
-

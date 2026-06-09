@@ -128,14 +128,14 @@ class SifenServiceBase:
         return envelope, body
 
     def _make_request(
-        self, url: str, soap_message: etree.Element, soap_action: Optional[str] = None
+        self, url: str, soap_message, soap_action: Optional[str] = None
     ) -> etree.Element:
         """
         Realiza una petición SOAP.
 
         Args:
             url: URL del servicio.
-            soap_message: Mensaje SOAP a enviar.
+            soap_message: Mensaje SOAP a enviar (etree.Element o bytes).
             soap_action: SOAPAction header (opcional).
 
         Returns:
@@ -144,10 +144,13 @@ class SifenServiceBase:
         Raises:
             CommunicationException: Si hay error en la comunicación.
         """
-        # Convertir a string XML
-        xml_string = etree.tostring(
-            soap_message, encoding="utf-8", xml_declaration=True, pretty_print=False
-        )
+        # Convertir a bytes si es necesario
+        if isinstance(soap_message, bytes):
+            xml_string = soap_message
+        else:
+            xml_string = etree.tostring(
+                soap_message, encoding="utf-8", xml_declaration=True, pretty_print=False
+            )
 
         # Log del request
         logger.info(f"Enviando request a: {url}")
@@ -198,7 +201,6 @@ class SifenServiceBase:
             # Log de respuesta
             logger.info(f"Respuesta recibida. Status: {response.status_code}")
             logger.debug(f"SOAP Response:\n{response.text}")
-
 
             # SIFEN devuelve HTTP 400 para rechazos de negocio (ej: código 0160)
             # al igual que para aprobaciones (200). Intentamos parsear el SOAP

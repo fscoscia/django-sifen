@@ -82,7 +82,7 @@ def main():
             dNumTim=80159272,
             dEst="001",
             dPunExp="001",
-            dNumDoc="0000045",
+            dNumDoc="0000101",
             dFeIniT=datetime.strptime("2026-04-16", "%Y-%m-%d").date(),
         ),
         gDatGralOpe=DatosGeneralesDE(

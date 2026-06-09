@@ -13,7 +13,16 @@ from sifen.models.eventos import (
     EventoDisconformidad,
     EventoDesconocimiento,
     EventoInutilizacion,
+    EventoNotificacionRecepcion,
+    EventoConformidadParcial,
     EventoNotificacionNoRecepcion,
+    EventoAsociacionRetencion,
+    EventoAnulacionRetencion,
+    EventoCreditosFiscales,
+    EventoDevolucionCreditosFiscales,
+    EventoAnticipo,
+    EventoRemision,
+    EventoTransporte,
 )
 
 
@@ -26,7 +35,7 @@ class XMLEventoGenerator:
 
     def generate(self, evento: GestionEvento) -> str:
         """
-        Genera el XML de un evento.
+        Genera el XML de un evento según schema SIFEN v150.
 
         Args:
             evento: Objeto GestionEvento.
@@ -34,36 +43,31 @@ class XMLEventoGenerator:
         Returns:
             XML como string.
         """
-        # Crear elemento raíz
-        root = etree.Element("rGesEve", nsmap={None: self.namespace}, Id=evento.Id)
+        # Crear elemento raíz rGesEve con namespace SIFEN
+        # NO declarar xmlns:ds porque la firma no usa prefijo según ejemplo oficial
+        root = etree.Element("rGesEve", nsmap={None: self.namespace})
+
+        # Crear elemento rEve con Id como atributo
+        r_eve = etree.SubElement(root, "rEve", Id=evento.Id)
 
         # Agregar fecha de firma
-        fecha_elem = etree.SubElement(root, "dFecFirma")
+        fecha_elem = etree.SubElement(r_eve, "dFecFirma")
         fecha_elem.text = evento.dFecFirma.strftime("%Y-%m-%dT%H:%M:%S")
 
-        # Agregar tipo de evento
-        tipo_elem = etree.SubElement(root, "gGroupTiEvt")
+        # Agregar versión del formato (150)
+        ver_for = etree.SubElement(r_eve, "dVerFor")
+        ver_for.text = "150"
 
-        itipeve_elem = etree.SubElement(tipo_elem, "iTipEve")
-        itipeve_elem.text = str(evento.iTipEve)
+        # Crear gGroupTiEvt
+        g_group_ti_evt = etree.SubElement(r_eve, "gGroupTiEvt")
 
-        destipeve_elem = etree.SubElement(tipo_elem, "dDesTipEve")
-        destipeve_elem.text = evento.dDesTipEve
-
-        # Agregar CDC del documento
-        cdc_elem = etree.SubElement(tipo_elem, "Id_CDC")
-        cdc_elem.text = evento.Id_CDC
-
-        # Agregar motivo si existe
-        if evento.mOtEve:
-            motivo_elem = etree.SubElement(tipo_elem, "mOtEve")
-            motivo_elem.text = evento.mOtEve
-
-        # Agregar datos específicos del evento
+        # Agregar datos específicos del evento según tipo
         if evento.gGroupGesEve:
-            self._add_evento_especifico(tipo_elem, evento.gGroupGesEve, evento.iTipEve)
+            self._add_evento_especifico(
+                g_group_ti_evt, evento.gGroupGesEve, evento.iTipEve, evento.Id_CDC
+            )
 
-        # Convertir a string
+        # Convertir a string con formato legible
         xml_string = etree.tostring(
             root, encoding="unicode", pretty_print=True, xml_declaration=False
         )
@@ -71,7 +75,7 @@ class XMLEventoGenerator:
         return xml_string
 
     def _add_evento_especifico(
-        self, parent: etree.Element, evento_obj: object, tipo_evento: int
+        self, parent: etree.Element, evento_obj: object, tipo_evento: int, cdc: str
     ):
         """
         Agrega los datos específicos de cada tipo de evento.
@@ -82,23 +86,31 @@ class XMLEventoGenerator:
             tipo_evento: Tipo de evento.
         """
         if tipo_evento == 1:  # Cancelación
-            self._add_cancelacion(parent, evento_obj)
+            self._add_cancelacion(parent, evento_obj, cdc)
         elif tipo_evento == 2:  # Inutilización
             self._add_inutilizacion(parent, evento_obj)
-        elif tipo_evento == 3:  # Conformidad
-            self._add_conformidad(parent, evento_obj)
-        elif tipo_evento == 4:  # Disconformidad
+        elif tipo_evento == 10:  # Notificación de Recepción
+            self._add_notificacion_recepcion(parent, evento_obj)
+        elif tipo_evento == 11:  # Conformidad (Total o Parcial)
+            self._add_conformidad_parcial(parent, evento_obj)
+        elif tipo_evento == 12:  # Disconformidad
             self._add_disconformidad(parent, evento_obj)
-        elif tipo_evento == 5:  # Desconocimiento
+        elif tipo_evento == 13:  # Desconocimiento
             self._add_desconocimiento(parent, evento_obj)
-        elif tipo_evento == 6:  # Notificación no recepción
-            self._add_notificacion_no_recepcion(parent, evento_obj)
+        elif tipo_evento == 16:  # Asociación de Retención
+            self._add_asociacion_retencion(parent, evento_obj)
 
-    def _add_cancelacion(self, parent: etree.Element, evento: EventoCancelacion):
+    def _add_cancelacion(
+        self, parent: etree.Element, evento: EventoCancelacion, cdc: str
+    ):
         """Agrega datos de cancelación."""
-        grupo = etree.SubElement(parent, "gGroupGesEve")
-        grupo_canc = etree.SubElement(grupo, "rGeVeCan")
+        grupo_canc = etree.SubElement(parent, "rGeVeCan")
 
+        # Id es el CDC del documento a cancelar
+        id_elem = etree.SubElement(grupo_canc, "Id")
+        id_elem.text = cdc
+
+        # Motivo de cancelación
         motivo = etree.SubElement(grupo_canc, "mOtEve")
         motivo.text = evento.mOtEve
 
@@ -154,6 +166,89 @@ class XMLEventoGenerator:
 
         motivo = etree.SubElement(grupo_desc, "mOtEve")
         motivo.text = evento.mOtEve
+
+    def _add_notificacion_recepcion(
+        self, parent: etree.Element, evento: EventoNotificacionRecepcion
+    ):
+        """Agrega datos de notificación de recepción."""
+        grupo = etree.SubElement(parent, "rGeVeNotRec")
+
+        id_elem = etree.SubElement(grupo, "Id")
+        id_elem.text = evento.Id
+
+        fec_emi = etree.SubElement(grupo, "dFecEmi")
+        fec_emi.text = evento.dFecEmi.strftime("%Y-%m-%d")
+
+        fec_recep = etree.SubElement(grupo, "dFecRecep")
+        fec_recep.text = evento.dFecRecep.strftime("%Y-%m-%d")
+
+        tip_rec = etree.SubElement(grupo, "iTipRec")
+        tip_rec.text = str(evento.iTipRec)
+
+        nom_rec = etree.SubElement(grupo, "dNomRec")
+        nom_rec.text = evento.dNomRec
+
+        if evento.iTipRec == 1 and evento.dRucRec:
+            ruc_rec = etree.SubElement(grupo, "dRucRec")
+            ruc_rec.text = evento.dRucRec
+
+            dv_rec = etree.SubElement(grupo, "dDVRec")
+            dv_rec.text = str(evento.dDVRec)
+
+        if evento.iTipRec == 2:
+            if evento.dTipIDRec:
+                tip_id = etree.SubElement(grupo, "dTipIDRec")
+                tip_id.text = str(evento.dTipIDRec)
+
+            if evento.dNumID:
+                num_id = etree.SubElement(grupo, "dNumID")
+                num_id.text = evento.dNumID
+
+        total = etree.SubElement(grupo, "iTotalGs")
+        total.text = str(evento.iTotalGs)
+
+    def _add_conformidad_parcial(
+        self, parent: etree.Element, evento: EventoConformidadParcial
+    ):
+        """Agrega datos de conformidad parcial."""
+        grupo = etree.SubElement(parent, "rGeVeConf")
+
+        id_elem = etree.SubElement(grupo, "Id")
+        id_elem.text = evento.Id
+
+        tip_conf = etree.SubElement(grupo, "iTipConf")
+        tip_conf.text = str(evento.iTipConf)
+
+        if evento.iTipConf == 2 and evento.dFecRecep:
+            fec_recep = etree.SubElement(grupo, "dFecRecep")
+            fec_recep.text = evento.dFecRecep.strftime("%Y-%m-%d")
+
+    def _add_asociacion_retencion(
+        self, parent: etree.Element, evento: EventoAsociacionRetencion
+    ):
+        """Agrega datos de asociación de retención."""
+        grupo = etree.SubElement(parent, "rGeVeRetAce")
+
+        id_elem = etree.SubElement(grupo, "Id")
+        id_elem.text = evento.Id
+
+        num_tim = etree.SubElement(grupo, "dNumTimRet")
+        num_tim.text = str(evento.dNumTimRet)
+
+        est = etree.SubElement(grupo, "dEstRet")
+        est.text = evento.dEstRet
+
+        pun_exp = etree.SubElement(grupo, "dPunExpRet")
+        pun_exp.text = evento.dPunExpRet
+
+        num_doc = etree.SubElement(grupo, "dNumDocRet")
+        num_doc.text = evento.dNumDocRet
+
+        cod_con = etree.SubElement(grupo, "dCodConRet")
+        cod_con.text = evento.dCodConRet
+
+        fec_emi = etree.SubElement(grupo, "dFeEmiRet")
+        fec_emi.text = evento.dFeEmiRet.strftime("%Y-%m-%d")
 
     def _add_notificacion_no_recepcion(
         self, parent: etree.Element, evento: EventoNotificacionNoRecepcion
