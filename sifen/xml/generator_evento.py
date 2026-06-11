@@ -23,6 +23,7 @@ from sifen.models.eventos import (
     EventoAnticipo,
     EventoRemision,
     EventoTransporte,
+    EventoNominacion,
 )
 
 
@@ -47,8 +48,16 @@ class XMLEventoGenerator:
         # NO declarar xmlns:ds porque la firma no usa prefijo según ejemplo oficial
         root = etree.Element("rGesEve", nsmap={None: self.namespace})
 
-        # Crear elemento rEve con Id como atributo
-        r_eve = etree.SubElement(root, "rEve", Id=evento.Id)
+        # Eventos de receptor (10-13) NO tienen atributo Id en rEve
+        # Eventos generales (1, 2, 16, etc.) SÍ tienen atributo Id en rEve
+        es_evento_receptor = evento.iTipEve in [10, 11, 12, 13]
+
+        if es_evento_receptor:
+            # Eventos de receptor: rEve sin atributo Id
+            r_eve = etree.SubElement(root, "rEve")
+        else:
+            # Eventos generales: rEve con atributo Id
+            r_eve = etree.SubElement(root, "rEve", Id=evento.Id)
 
         # Agregar fecha de firma
         fecha_elem = etree.SubElement(r_eve, "dFecFirma")
@@ -99,6 +108,8 @@ class XMLEventoGenerator:
             self._add_desconocimiento(parent, evento_obj)
         elif tipo_evento == 16:  # Asociación de Retención
             self._add_asociacion_retencion(parent, evento_obj)
+        elif tipo_evento == 3:  # Nominación
+            self._add_nominacion(parent, evento_obj)
 
     def _add_cancelacion(
         self, parent: etree.Element, evento: EventoCancelacion, cdc: str
@@ -116,12 +127,9 @@ class XMLEventoGenerator:
 
     def _add_inutilizacion(self, parent: etree.Element, evento: EventoInutilizacion):
         """Agrega datos de inutilización."""
-        grupo = etree.SubElement(parent, "gGroupGesEve")
-        grupo_inu = etree.SubElement(grupo, "rGeVeInu")
+        grupo_inu = etree.SubElement(parent, "rGeVeInu")
 
-        motivo = etree.SubElement(grupo_inu, "mOtEve")
-        motivo.text = evento.mOtEve
-
+        # Orden según ejemplo oficial: dNumTim, dEst, dPunExp, dNumIn, dNumFin, iTiDE, mOtEve
         timbrado = etree.SubElement(grupo_inu, "dNumTim")
         timbrado.text = str(evento.dNumTim)
 
@@ -140,14 +148,9 @@ class XMLEventoGenerator:
         tipo = etree.SubElement(grupo_inu, "iTiDE")
         tipo.text = str(evento.iTiDE)
 
-    def _add_conformidad(self, parent: etree.Element, evento: EventoConformidad):
-        """Agrega datos de conformidad."""
-        grupo = etree.SubElement(parent, "gGroupGesEve")
-        grupo_conf = etree.SubElement(grupo, "rGeVeConf")
-
-        if evento.mOtEve:
-            motivo = etree.SubElement(grupo_conf, "mOtEve")
-            motivo.text = evento.mOtEve
+        # mOtEve va al final
+        motivo = etree.SubElement(grupo_inu, "mOtEve")
+        motivo.text = evento.mOtEve
 
     def _add_disconformidad(self, parent: etree.Element, evento: EventoDisconformidad):
         """Agrega datos de disconformidad."""
@@ -211,6 +214,8 @@ class XMLEventoGenerator:
         self, parent: etree.Element, evento: EventoConformidadParcial
     ):
         """Agrega datos de conformidad parcial."""
+        from datetime import datetime
+
         grupo = etree.SubElement(parent, "rGeVeConf")
 
         id_elem = etree.SubElement(grupo, "Id")
@@ -219,9 +224,14 @@ class XMLEventoGenerator:
         tip_conf = etree.SubElement(grupo, "iTipConf")
         tip_conf.text = str(evento.iTipConf)
 
-        if evento.iTipConf == 2 and evento.dFecRecep:
+        # Agregar dFecRecep siempre (fecha actual si no se especifica)
+        if evento.dFecRecep:
             fec_recep = etree.SubElement(grupo, "dFecRecep")
-            fec_recep.text = evento.dFecRecep.strftime("%Y-%m-%d")
+            fec_recep.text = evento.dFecRecep.strftime("%Y-%m-%dT%H:%M:%S")
+        elif evento.iTipConf == 1:
+            # Para conformidad total, usar fecha actual
+            fec_recep = etree.SubElement(grupo, "dFecRecep")
+            fec_recep.text = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
     def _add_asociacion_retencion(
         self, parent: etree.Element, evento: EventoAsociacionRetencion
@@ -268,6 +278,41 @@ class XMLEventoGenerator:
             fecha.text = evento.dFeEmiDE.strftime("%Y-%m-%d")
         else:
             fecha.text = str(evento.dFeEmiDE)
+
+    def _add_nominacion(self, parent: etree.Element, evento: EventoNominacion):
+        """Agrega datos de nominación."""
+        grupo_nom = etree.SubElement(parent, "rGEveNom")
+
+        # Orden según ejemplo oficial del XML
+        id_elem = etree.SubElement(grupo_nom, "Id")
+        id_elem.text = evento.Id
+
+        motivo = etree.SubElement(grupo_nom, "mOtEve")
+        motivo.text = evento.mOtEve
+
+        nat_rec = etree.SubElement(grupo_nom, "iNatRec")
+        nat_rec.text = str(evento.iNatRec)
+
+        ti_ope = etree.SubElement(grupo_nom, "iTiOpe")
+        ti_ope.text = str(evento.iTiOpe)
+
+        pais_rec = etree.SubElement(grupo_nom, "cPaisRec")
+        pais_rec.text = evento.cPaisRec
+
+        des_pais = etree.SubElement(grupo_nom, "dDesPaisRe")
+        des_pais.text = evento.dDesPaisRe
+
+        ti_cont = etree.SubElement(grupo_nom, "iTiContRec")
+        ti_cont.text = str(evento.iTiContRec)
+
+        ruc_rec = etree.SubElement(grupo_nom, "dRucRec")
+        ruc_rec.text = evento.dRucRec
+
+        dv_rec = etree.SubElement(grupo_nom, "dDVRec")
+        dv_rec.text = str(evento.dDVRec)
+
+        nom_rec = etree.SubElement(grupo_nom, "dNomRec")
+        nom_rec.text = evento.dNomRec
 
 
 def generate_evento_xml(evento: GestionEvento) -> str:

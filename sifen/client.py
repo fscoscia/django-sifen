@@ -429,7 +429,7 @@ class SifenClient:
         self, cdc: str, motivo: str = None
     ) -> "RespuestaRecepcionEvento":
         """
-        Envía conformidad de recepción de un documento.
+        Envía conformidad total de recepción de un documento.
 
         Args:
             cdc: CDC del documento.
@@ -438,17 +438,22 @@ class SifenClient:
         Returns:
             Respuesta de SIFEN.
         """
-        from sifen.models.eventos import GestionEvento, EventoConformidad
+        from sifen.models.eventos import GestionEvento, EventoConformidadParcial
         from sifen.xml.generator_evento import generate_evento_xml
         from sifen.crypto import sign_xml_element
         from sifen.services import recibir_evento, TIPO_EVENTO_CONFORMIDAD
         from lxml import etree
         from datetime import datetime
 
-        evento_conf = EventoConformidad(mOtEve=motivo)
+        # Conformidad total (iTipConf=1)
+        evento_conf = EventoConformidadParcial(Id=cdc, iTipConf=1)
+
+        # Generar ID del evento numérico (1-10 caracteres según manual)
+        # Usar timestamp de 10 dígitos (segundos desde epoch)
+        evento_id = str(int(datetime.now().timestamp()))[:10]
 
         evento = GestionEvento(
-            Id="1",
+            Id=evento_id,
             dFecFirma=datetime.now(),
             iTipEve=TIPO_EVENTO_CONFORMIDAD,
             dDesTipEve="Conformidad",
@@ -460,7 +465,11 @@ class SifenClient:
         # Generar, firmar y enviar
         xml_string = generate_evento_xml(evento)
         root = etree.fromstring(xml_string.encode("utf-8"))
-        signed_root = sign_xml_element(root, self.config, evento.Id)
+
+        # Para eventos de receptor, usar el CDC del evento (no el Id de GestionEvento)
+        # porque rEve no tiene atributo Id en eventos de receptor
+        id_para_firma = evento_conf.Id  # CDC del documento
+        signed_root = sign_xml_element(root, self.config, id_para_firma)
         xml_firmado = etree.tostring(signed_root, encoding="unicode")
 
         return recibir_evento(self.config, xml_firmado)
@@ -546,6 +555,82 @@ class SifenClient:
 
         return recibir_evento(self.config, xml_firmado)
 
+    def nominar_documento(
+        self,
+        cdc: str,
+        motivo: str,
+        ruc: str,
+        dv: int,
+        nombre: str,
+        naturaleza_receptor: int = 1,
+        tipo_operacion: int = 1,
+        codigo_pais: str = "PRY",
+        descripcion_pais: str = "Paraguay",
+        tipo_contribuyente: int = 1,
+    ) -> "RespuestaRecepcionEvento":
+        """
+        Nomina un documento electrónico (asigna RUC/identidad a factura innominada).
+
+        Args:
+            cdc: CDC del documento a nominar.
+            motivo: Motivo de la nominación.
+            ruc: RUC del receptor (sin DV).
+            dv: Dígito verificador del RUC.
+            nombre: Nombre o razón social del receptor.
+            naturaleza_receptor: Naturaleza del receptor (1=Contribuyente, 2=No contribuyente).
+            tipo_operacion: Tipo de operación (1-10).
+            codigo_pais: Código del país (3 caracteres).
+            descripcion_pais: Descripción del país.
+            tipo_contribuyente: Tipo de contribuyente (1 o 2).
+
+        Returns:
+            Respuesta de SIFEN.
+        """
+        from sifen.models.eventos import GestionEvento, EventoNominacion
+        from sifen.xml.generator_evento import generate_evento_xml
+        from sifen.crypto import sign_xml_element
+        from sifen.services import recibir_evento, TIPO_EVENTO_NOMINACION
+        from lxml import etree
+        from datetime import datetime
+
+        evento_nom = EventoNominacion(
+            Id=cdc,
+            mOtEve=motivo,
+            iNatRec=naturaleza_receptor,
+            iTiOpe=tipo_operacion,
+            cPaisRec=codigo_pais,
+            dDesPaisRe=descripcion_pais,
+            iTiContRec=tipo_contribuyente,
+            dRucRec=ruc,
+            dDVRec=dv,
+            dNomRec=nombre,
+        )
+
+        evento_id = str(int(datetime.now().timestamp()))[:10]
+
+        evento = GestionEvento(
+            Id=evento_id,
+            dFecFirma=datetime.now(),
+            iTipEve=TIPO_EVENTO_NOMINACION,
+            dDesTipEve="Nominación",
+            Id_CDC=cdc,
+            mOtEve=motivo,
+            gGroupGesEve=evento_nom,
+        )
+
+        is_valid, error = evento.validate()
+        if not is_valid:
+            from sifen.exceptions import ValidationException
+
+            raise ValidationException(f"Evento inválido: {error}")
+
+        xml_string = generate_evento_xml(evento)
+        root = etree.fromstring(xml_string.encode("utf-8"))
+        signed_root = sign_xml_element(root, self.config, evento.Id)
+        xml_firmado = etree.tostring(signed_root, encoding="unicode")
+
+        return recibir_evento(self.config, xml_firmado)
+
     def inutilizar_numeracion(
         self,
         motivo: str,
@@ -591,8 +676,12 @@ class SifenClient:
         # Generar CDC ficticio para inutilización
         cdc_ficticio = "0" * 44
 
+        # Generar ID del evento numérico (1-10 caracteres según manual)
+        # Usar timestamp de 10 dígitos (segundos desde epoch)
+        evento_id = str(int(datetime.now().timestamp()))[:10]
+
         evento = GestionEvento(
-            Id="1",
+            Id=evento_id,
             dFecFirma=datetime.now(),
             iTipEve=TIPO_EVENTO_INUTILIZACION,
             dDesTipEve="Inutilización",

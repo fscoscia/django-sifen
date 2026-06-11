@@ -40,6 +40,7 @@ class EventoConformidad(SifenObject):
     El receptor confirma que recibió el documento correctamente.
     """
 
+    Id: str  # CDC del documento al que se da conformidad
     mOtEve: Optional[str] = None  # Motivo (opcional, máx 500 caracteres)
 
     def validate(self) -> Tuple[bool, Optional[str]]:
@@ -468,6 +469,67 @@ class EventoTransporte(SifenObject):
 
         if self.dMotEv not in [1, 2, 3, 4]:
             return False, "Motivo del evento inválido (debe ser 1-4)"
+
+        return True, None
+
+
+@dataclass
+class EventoNominacion(SifenObject):
+    """
+    Evento de Nominación del Emisor.
+
+    Permite asignar el RUC o identidad correcta a una factura que
+    originalmente se emitió a un "innominado" (sin identificación del receptor).
+    """
+
+    Id: str  # CDC del documento a nominar
+    mOtEve: str  # Motivo del evento (requerido, máx 500 caracteres)
+    iNatRec: int  # Naturaleza del receptor (1=Contribuyente, 2=No contribuyente)
+    iTiOpe: int  # Tipo de operación (1-10)
+    cPaisRec: str  # Código del país del receptor (3 caracteres)
+    dDesPaisRe: str  # Descripción del país (4-50 caracteres)
+    iTiContRec: int  # Tipo de contribuyente receptor (1-2)
+    dRucRec: str  # RUC del receptor (3-8 dígitos)
+    dDVRec: int  # DV del RUC del receptor
+    dNomRec: str  # Nombre o razón social del receptor (4-60 caracteres)
+
+    def validate(self) -> Tuple[bool, Optional[str]]:
+        """Valida el evento de nominación."""
+        if len(self.Id) != 44:
+            return False, "El CDC debe tener 44 caracteres"
+
+        if not self.mOtEve or not self.mOtEve.strip():
+            return False, "El motivo de nominación es requerido"
+
+        if len(self.mOtEve) > 500:
+            return False, "El motivo no puede exceder 500 caracteres"
+
+        if self.iNatRec not in [1, 2]:
+            return (
+                False,
+                "Naturaleza del receptor inválida (1=Contribuyente, 2=No contribuyente)",
+            )
+
+        if self.iTiOpe < 1 or self.iTiOpe > 10:
+            return False, "Tipo de operación inválido (debe estar entre 1 y 10)"
+
+        if len(self.cPaisRec) != 3:
+            return False, "El código del país debe tener 3 caracteres"
+
+        if len(self.dDesPaisRe) < 4 or len(self.dDesPaisRe) > 50:
+            return False, "La descripción del país debe tener entre 4 y 50 caracteres"
+
+        if self.iTiContRec not in [1, 2]:
+            return False, "Tipo de contribuyente inválido (1 o 2)"
+
+        if len(self.dRucRec) < 3 or len(self.dRucRec) > 8:
+            return False, "El RUC debe tener entre 3 y 8 dígitos"
+
+        if not self.dRucRec.isdigit():
+            return False, "El RUC debe contener solo dígitos"
+
+        if len(self.dNomRec) < 4 or len(self.dNomRec) > 60:
+            return False, "El nombre del receptor debe tener entre 4 y 60 caracteres"
 
         return True, None
 

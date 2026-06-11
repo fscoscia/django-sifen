@@ -98,11 +98,11 @@ def test_inutilizacion():
     client = configurar_cliente()
 
     # IMPORTANTE: Ajusta estos valores según tu timbrado
-    timbrado = 12345678
+    timbrado = 80159272
     establecimiento = "001"
     punto_expedicion = "001"
-    numero_inicial = "0000100"
-    numero_final = "0000105"
+    numero_inicial = "0000200"
+    numero_final = "0000202"
     tipo_documento = 1  # Factura electrónica
     motivo = "Prueba de inutilización - Salto de numeración por error técnico"
 
@@ -241,6 +241,75 @@ def test_desconocimiento():
         return False
 
 
+def test_nominacion():
+    """
+    Prueba el evento de nominación.
+
+    Requisitos:
+    - Tener un CDC de un documento emitido a "innominado"
+    - El documento debe estar aprobado
+    """
+    print("\n" + "=" * 60)
+    print("TEST: Nominación de Documento")
+    print("=" * 60)
+
+    client = configurar_cliente()
+
+    print("\n" + "-" * 60)
+    cdc = input(
+        "Ingresa el CDC del documento innominado a nominar (44 caracteres): "
+    ).strip()
+
+    if len(cdc) != 44:
+        print(
+            f"\n✗ ERROR: El CDC debe tener exactamente 44 caracteres, tiene {len(cdc)}"
+        )
+        return False
+
+    if not cdc.isdigit():
+        print("\n✗ ERROR: El CDC debe contener solo números")
+        return False
+
+    print("\n" + "-" * 60)
+    print("Datos del receptor a asignar:")
+    ruc = input("RUC del receptor (sin DV): ").strip()
+    dv = input("Dígito verificador: ").strip()
+    nombre = input("Nombre o razón social: ").strip()
+    motivo = input("Motivo de la nominación: ").strip()
+
+    if not motivo:
+        motivo = "Asignación de datos del receptor a factura innominada"
+
+    print(f"\n✓ CDC: {cdc}")
+    print(f"✓ RUC: {ruc}-{dv}")
+    print(f"✓ Nombre: {nombre}")
+    print(f"✓ Motivo: {motivo}")
+    print("\nEnviando nominación...")
+
+    try:
+        respuesta = client.nominar_documento(
+            cdc=cdc,
+            motivo=motivo,
+            ruc=ruc,
+            dv=int(dv),
+            nombre=nombre,
+        )
+
+        print(f"\n{'✓' if respuesta.aprobado else '✗'} Resultado:")
+        print(f"  Código: {respuesta.codigo}")
+        print(f"  Mensaje: {respuesta.mensaje}")
+
+        if respuesta.aprobado:
+            print(f"  Protocolo: {respuesta.numero_protocolo}")
+            print(f"  Fecha: {respuesta.fecha_recepcion}")
+
+        return respuesta.aprobado
+
+    except Exception as e:
+        print(f"\n✗ Error: {str(e)}")
+        return False
+
+
 def test_validacion_modelos():
     """
     Prueba la validación de modelos sin enviar a SIFEN.
@@ -254,6 +323,7 @@ def test_validacion_modelos():
         EventoCancelacion,
         EventoInutilizacion,
         EventoDisconformidad,
+        EventoNominacion,
         GestionEvento,
     )
 
@@ -301,8 +371,25 @@ def test_validacion_modelos():
         f"   {'✓' if not is_valid else '✗'} {error if error else 'Debería ser inválido'}"
     )
 
-    # Test 5: GestionEvento
-    print("\n5. Validando GestionEvento...")
+    # Test 5: Nominación válida
+    print("\n5. Validando EventoNominacion...")
+    evento_nom = EventoNominacion(
+        Id="0" * 44,
+        mOtEve="Asignación de receptor a factura innominada",
+        iNatRec=1,
+        iTiOpe=1,
+        cPaisRec="PRY",
+        dDesPaisRe="Paraguay",
+        iTiContRec=1,
+        dRucRec="80012345",
+        dDVRec=6,
+        dNomRec="Juan Pérez",
+    )
+    is_valid, error = evento_nom.validate()
+    print(f"   {'✓' if is_valid else '✗'} {error if error else 'Válido'}")
+
+    # Test 6: GestionEvento
+    print("\n6. Validando GestionEvento...")
     gestion = GestionEvento(
         Id="EVE20240604123000",
         dFecFirma=datetime.now(),
@@ -327,12 +414,13 @@ def menu_interactivo():
         print("\nEventos del Emisor:")
         print("  1. Cancelación de Documento")
         print("  2. Inutilización de Numeración")
+        print("  3. Nominación de Documento (asignar RUC a innominado)")
         print("\nEventos del Receptor:")
-        print("  3. Conformidad")
-        print("  4. Disconformidad")
-        print("  5. Desconocimiento")
+        print("  4. Conformidad")
+        print("  5. Disconformidad")
+        print("  6. Desconocimiento")
         print("\nPruebas sin Envío:")
-        print("  6. Validación de Modelos (sin envío a SIFEN)")
+        print("  7. Validación de Modelos (sin envío a SIFEN)")
         print("\n  0. Salir")
         print("=" * 60)
 
@@ -346,12 +434,14 @@ def menu_interactivo():
         elif opcion == "2":
             test_inutilizacion()
         elif opcion == "3":
-            test_conformidad()
+            test_nominacion()
         elif opcion == "4":
-            test_disconformidad()
+            test_conformidad()
         elif opcion == "5":
-            test_desconocimiento()
+            test_disconformidad()
         elif opcion == "6":
+            test_desconocimiento()
+        elif opcion == "7":
             test_validacion_modelos()
         else:
             print("\n✗ Opción inválida")

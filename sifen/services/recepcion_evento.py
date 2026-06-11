@@ -18,6 +18,7 @@ from sifen.exceptions import SifenException
 # Tipos de eventos del emisor
 TIPO_EVENTO_CANCELACION = 1
 TIPO_EVENTO_INUTILIZACION = 2
+TIPO_EVENTO_NOMINACION = 3
 
 # Tipos de eventos del receptor
 TIPO_EVENTO_NOTIFICACION_RECEPCION = 10
