@@ -779,6 +779,52 @@ class SifenClient:
         """
         return f"{self.config.url_consulta_qr}{cdc}"
 
+    def generar_kude(
+        self,
+        documento: "DocumentoElectronico",
+        output_path: Optional[str] = None,
+        logo_path: Optional[str] = None,
+    ) -> bytes:
+        """
+        Genera el KuDE (representación gráfica en PDF) del documento electrónico.
+
+        El KuDE es la representación gráfica del documento electrónico según
+        el Manual Técnico SIFEN v150, Capítulo 13. Puede ser impreso o enviado
+        digitalmente al receptor.
+
+        Args:
+            documento: Documento electrónico con CDC generado.
+            output_path: Ruta donde guardar el PDF (opcional).
+            logo_path: Ruta del logo del emisor para incluir en el KuDE (opcional).
+
+        Returns:
+            Bytes del PDF generado.
+
+        Raises:
+            ImportError: Si ReportLab no está instalado.
+            ValueError: Si el documento no tiene CDC generado.
+
+        Example:
+            >>> # Después de enviar un documento
+            >>> respuesta = client.enviar_documento(documento)
+            >>> if respuesta.aprobado:
+            ...     # Generar KuDE
+            ...     pdf_bytes = client.generar_kude(
+            ...         documento,
+            ...         output_path="/path/to/factura.pdf",
+            ...         logo_path="/path/to/logo.png"
+            ...     )
+            ...     print(f"KuDE generado: {len(pdf_bytes)} bytes")
+        """
+        from sifen.kude_generator import generar_kude
+
+        return generar_kude(
+            documento=documento,
+            output_path=output_path,
+            logo_path=logo_path,
+            ambiente=self.config.ambiente,
+        )
+
     @classmethod
     def validar_firma_xml_estatico(cls, xml: str) -> "SignatureValidationResult":
         """

@@ -1,0 +1,144 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<rDE xmlns="http://ekuatia.set.gov.py/sifen/xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://ekuatia.set.gov.py/sifen/xsd siRecepDE_v150.xsd">
+  <dVerFor>150</dVerFor>
+  <DE Id="01800123456001001000000112026061511234567892">
+    <dDVId>2</dDVId>
+    <dFecFirma>2026-06-15T10:15:11</dFecFirma>
+    <dSisFact>1</dSisFact>
+    <gOpeDE>
+      <iTipEmi>1</iTipEmi>
+      <dDesTipEmi>Normal</dDesTipEmi>
+      <dCodSeg>123456789</dCodSeg>
+      <dInfoFisc>a) Tipo de Operación: Exportación Definitiva, b) Condición de Negociación: FOB, c) País de Destino: Brasil, d) Empresa Fletera o Exportador Nacional: NAVIERA INTERNACIONAL SA, e) Agente de Transporte: LOGISTICA GLOBAL SRL, f) Instrucciones de Pago para el cliente: Beneficiario: MI EMPRESA EXPORTADORA SA, Banco: BANCO ITAU PARAGUAY, Nº de cuenta: 1234567890, Código SWIFT: ITAUPYPA, Cartas de Crédito: LC-2026-001234, g) Número/s de Conocimiento/s de Embarque: BL-2026-001234, h) Número/s de Manifiesto/s Internacional/es de Carga: MIC-2026-005678, i) Número de barcaza o remolcador: N/A, j) Exportación conforme Decreto 10797/2013</dInfoFisc>
+    </gOpeDE>
+    <gTimb>
+      <iTiDE>1</iTiDE>
+      <dDesTiDE>Factura Electrónica</dDesTiDE>
+      <dNumTim>12345678</dNumTim>
+      <dEst>001</dEst>
+      <dPunExp>001</dPunExp>
+      <dNumDoc>0000001</dNumDoc>
+      <dFeIniT>2026-06-15</dFeIniT>
+    </gTimb>
+    <gDatGralOpe>
+      <dFeEmiDE>2026-06-15T00:00:00</dFeEmiDE>
+      <gOpeCom>
+        <iTipTra>1</iTipTra>
+        <dDesTipTra>Venta de mercadería</dDesTipTra>
+        <iTImp>1</iTImp>
+        <dDesTImp>IVA</dDesTImp>
+        <cMoneOpe>USD</cMoneOpe>
+        <dDesMoneOpe>Dólar Americano</dDesMoneOpe>
+      </gOpeCom>
+      <gEmis>
+        <dRucEm>80012345</dRucEm>
+        <dDVEmi>6</dDVEmi>
+        <iTipCont>1</iTipCont>
+        <dDesTipCont>Persona Jurídica</dDesTipCont>
+        <dNomEmi>MI EMPRESA EXPORTADORA SA</dNomEmi>
+        <dNomFanEmi>Exportadora SA</dNomFanEmi>
+        <dDirEmi>Av. Exportadores 1234</dDirEmi>
+        <dNumCas>1234</dNumCas>
+        <cDepEmi>1</cDepEmi>
+        <dDesDepEmi>Central</dDesDepEmi>
+        <cDisEmi>1</cDisEmi>
+        <dDesDisEmi>Asunción</dDesDisEmi>
+        <cCiuEmi>1</cCiuEmi>
+        <dDesCiuEmi>Asunción</dDesCiuEmi>
+        <dTelEmi>021-123456</dTelEmi>
+        <dEmailE>exportaciones@miempresa.com.py</dEmailE>
+        <gActEco>
+          <cActEco>46900</cActEco>
+          <dDesActEco>Venta al por mayor de productos diversos n.c.p.</dDesActEco>
+        </gActEco>
+      </gEmis>
+      <gDatRec>
+        <iNatRec>2</iNatRec>
+        <dDesNatRec>No residente</dDesNatRec>
+        <iTiOpe>2</iTiOpe>
+        <dDesTiOpe>B2B con no residente</dDesTiOpe>
+        <cPaisRec>BRA</cPaisRec>
+        <dDesPaisRe>Brasil</dDesPaisRe>
+        <dNumIDRec>12.345.678/0001-90</dNumIDRec>
+        <dNomRec>EMPRESA IMPORTADORA BRASILEIRA LTDA</dNomRec>
+        <dDirRec>Rua das Importações, 500</dDirRec>
+        <dTelRec>+55-11-98765-4321</dTelRec>
+        <dEmailRec>importacao@empresa.com.br</dEmailRec>
+      </gDatRec>
+    </gDatGralOpe>
+    <gDtipDE>
+      <gCamFE>
+        <iIndPres>1</iIndPres>
+        <dDesIndPres>Operación presencial</dDesIndPres>
+      </gCamFE>
+      <gCamCond>
+        <iCondOpe>1</iCondOpe>
+        <dDCondOpe>Contado</dDCondOpe>
+        <gPaConEIni>
+          <iTiPago>4</iTiPago>
+          <dDesTiPag>Transferencia bancaria</dDesTiPag>
+          <dMonTiPag>10000.0000</dMonTiPag>
+          <cMoneTiPag>USD</cMoneTiPag>
+          <dDMoneTiPag>guarani</dDMoneTiPag>
+        </gPaConEIni>
+      </gCamCond>
+      <gCamItem>
+        <dCodInt>EXP-001</dCodInt>
+        <dDesProSer>Producto manufacturado para exportación - Modelo A</dDesProSer>
+        <cUniMed>77</cUniMed>
+        <dDesUniMed>Unidad</dDesUniMed>
+        <dCantProSer>100.0000</dCantProSer>
+        <gValorItem>
+          <dPUniProSer>50.00000000</dPUniProSer>
+          <dTotBruOpeItem>5000.00000000</dTotBruOpeItem>
+          <gValorRestaItem>
+            <dDescItem>0.00000000</dDescItem>
+            <dTotOpeItem>5000.00000000</dTotOpeItem>
+          </gValorRestaItem>
+        </gValorItem>
+        <gCamIVA>
+          <iAfecIVA>3</iAfecIVA>
+          <dDesAfecIVA>Exonerado</dDesAfecIVA>
+          <dPropIVA>100</dPropIVA>
+          <dTasaIVA>0</dTasaIVA>
+          <dBasGravIVA>0.00000000</dBasGravIVA>
+          <dLiqIVAItem>0.00000000</dLiqIVAItem>
+          <dBasExe>0</dBasExe>
+        </gCamIVA>
+      </gCamItem>
+      <gCamItem>
+        <dCodInt>EXP-002</dCodInt>
+        <dDesProSer>Producto manufacturado para exportación - Modelo B</dDesProSer>
+        <cUniMed>77</cUniMed>
+        <dDesUniMed>Unidad</dDesUniMed>
+        <dCantProSer>50.0000</dCantProSer>
+        <gValorItem>
+          <dPUniProSer>100.00000000</dPUniProSer>
+          <dTotBruOpeItem>5000.00000000</dTotBruOpeItem>
+          <gValorRestaItem>
+            <dDescItem>0.00000000</dDescItem>
+            <dTotOpeItem>5000.00000000</dTotOpeItem>
+          </gValorRestaItem>
+        </gValorItem>
+        <gCamIVA>
+          <iAfecIVA>3</iAfecIVA>
+          <dDesAfecIVA>Exonerado</dDesAfecIVA>
+          <dPropIVA>100</dPropIVA>
+          <dTasaIVA>0</dTasaIVA>
+          <dBasGravIVA>0.00000000</dBasGravIVA>
+          <dLiqIVAItem>0.00000000</dLiqIVAItem>
+          <dBasExe>0</dBasExe>
+        </gCamIVA>
+      </gCamItem>
+    </gDtipDE>
+    <gTotSub>
+      <dSubExe>10000.00000000</dSubExe>
+      <dTotOpe>10000.00000000</dTotOpe>
+      <dTotGralOpe>10000.00000000</dTotGralOpe>
+      <dTotIVA>0.00000000</dTotIVA>
+    </gTotSub>
+  </DE>
+  <gCamFuFD>
+    <dCarQR>https://ekuatia.set.gov.py/consultas-test/qr?nVersion=150&amp;Id=01800123456001001000000112026061511234567892&amp;dFeEmiDE=323032362d30362d31355430303a30303a3030&amp;dNumIDRec=12.345.678/0001-90&amp;dTotGralOpe=10000.00000000&amp;dTotIVA=0.00000000&amp;cItems=2</dCarQR>
+  </gCamFuFD>
+</rDE>

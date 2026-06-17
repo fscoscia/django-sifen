@@ -53,6 +53,13 @@ Librería Python para Facturación Electrónica de Paraguay (SIFEN)
   - Uso del CDC para referenciar facturas
   - Obligatorio para NC/ND/Autofacturas
 
+- **[KuDE (PDF)](docs/KUDE.md)** - Generación de representación gráfica en PDF
+  - Qué es el KuDE y cuándo usarlo
+  - Generación automática con ReportLab
+  - Código QR de consulta SIFEN
+  - Personalización con logo del emisor
+  - Ejemplos de uso y casos prácticos
+
 ### Verificación Rápida
 
 ```bash
@@ -78,6 +85,7 @@ Para más detalles sobre el uso de la librería, consulta los ejemplos en el dir
 - `ejemplo_nota_tecnica_13.py` - Cálculo de IVA con NT-13
 - `ejemplo_validacion_firmas.py` - Validación de firmas digitales y QR
 - `ejemplo_compresion_lote.py` - Compresión ZIP en lotes
+- `ejemplo_generar_kude.py` - Generación de KuDE (PDF) con QR
 
 ## Descripción
 
@@ -97,6 +105,7 @@ Para más detalles sobre el uso de la librería, consulta los ejemplos en el dir
 -  **Firma Digital XML**: Soporte completo para certificados PFX con XMLDSig
 -  **Modelos de Datos**: Dataclasses Python para todos los campos SIFEN
 -  **Generación XML**: Conversión automática a XML SIFEN
+-  **Generación KuDE**: Representación gráfica en PDF con QR
 -  **Validaciones**: RUC, CDC, emails, teléfonos
 -  **Calculadoras**: IVA, totales, precios automáticos
 -  **Nota Técnica 13**: Cálculo correcto de base exenta para gravado parcial
