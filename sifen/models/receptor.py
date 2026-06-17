@@ -51,7 +51,13 @@ class Receptor(SifenObject):
     # E008-2 - Dígito verificador del RUC (para contribuyentes)
     dDVRec: Optional[str] = None
 
-    # E009 - Número de documento del receptor (opcional)
+    # E009 - Tipo de documento de identidad (para no contribuyentes)
+    iTipIDRec: Optional[int] = None
+
+    # E010 - Descripción del tipo de documento (para no contribuyentes)
+    dDTipIDRec: Optional[str] = None
+
+    # E011 - Número de documento del receptor (para no contribuyentes)
     dNumIDRec: Optional[str] = None
 
     # E011 - Nombre de fantasía del receptor (opcional)
@@ -90,18 +96,40 @@ class Receptor(SifenObject):
     # E022 - Código de cliente (opcional)
     dCodCliente: Optional[str] = None
 
+    def _validate_contribuyente(self) -> Tuple[bool, Optional[str]]:
+        """Valida datos de receptor contribuyente."""
+        if not self.dRucRec:
+            return False, "Receptor contribuyente debe tener RUC"
+        return True, None
+
+    def _validate_no_contribuyente(self) -> Tuple[bool, Optional[str]]:
+        """Valida datos de receptor no contribuyente."""
+        if self.iTiOpe == 1:
+            return False, "Operación B2B (iTiOpe=1) solo es válida para contribuyentes"
+
+        if self.iTiOpe == 4:
+            return True, None
+
+        if not self.iTipIDRec:
+            return False, "No contribuyente debe tener tipo de documento (iTipIDRec)"
+
+        if self.iTipIDRec not in [1, 2, 3, 4, 5, 6, 9]:
+            return False, f"Tipo de documento inválido: {self.iTipIDRec}"
+
+        if not self.dNumIDRec:
+            return False, "No contribuyente debe tener número de documento (dNumIDRec)"
+
+        return True, None
+
     def validate(self) -> Tuple[bool, Optional[str]]:
         """Valida los datos del receptor."""
-        # Validar naturaleza del receptor
         if self.iNatRec not in [1, 2]:
             return False, f"Naturaleza del receptor inválida: {self.iNatRec}"
 
-        # Validar tipo de operación
-        if self.iTiOpe not in [1, 2, 3, 4]:
+        if self.iTiOpe not in [1, 2, 3, 4, 9]:
             return False, f"Tipo de operación inválido: {self.iTiOpe}"
 
-        # Si es contribuyente (naturaleza 1), debe tener RUC o documento
-        if self.iNatRec == 1 and not (self.dRucRec or self.dNumIDRec):
-            return False, "Receptor contribuyente debe tener RUC o número de documento"
+        if self.iNatRec == 1:
+            return self._validate_contribuyente()
 
-        return True, None
+        return self._validate_no_contribuyente()
