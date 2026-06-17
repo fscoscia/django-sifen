@@ -467,6 +467,19 @@ class XMLGenerator:
             self._add_element(rec_elem, "dRucRec", gDatRec.dRucRec)
         if gDatRec.dDVRec:
             self._add_element(rec_elem, "dDVRec", gDatRec.dDVRec)
+        # D208 / D209: Tipo de documento de identidad del receptor
+        # Obligatorio si iNatRec = 2 y iTiOpe != 4 (según manual)
+        i_nat_rec = getattr(gDatRec, "iNatRec", None)
+        i_ti_ope = getattr(gDatRec, "iTiOpe", None)
+        
+        if i_nat_rec == 2 and i_ti_ope != 4:
+            i_tip_id = getattr(gDatRec, "iTipIDRec", None)
+            d_dtip_id = getattr(gDatRec, "dDTipIDRec", None)
+        
+            if i_tip_id is not None:
+                self._add_element(rec_elem, "iTipIDRec", i_tip_id)
+            if d_dtip_id:
+                self._add_element(rec_elem, "dDTipIDRec", d_dtip_id)
         if gDatRec.dNumIDRec:
             self._add_element(rec_elem, "dNumIDRec", gDatRec.dNumIDRec)
         self._add_element(rec_elem, "dNomRec", gDatRec.dNomRec)
