@@ -205,55 +205,117 @@ class KuDEGenerator:
     def _build_header(
         self, documento: DocumentoElectronico, logo_path: Optional[str] = None
     ) -> list:
-        """Construye el encabezado del KuDE."""
+        """Construye el encabezado del KuDE estilo Equifax."""
         elements = []
+
+        emisor = documento.gEmis
+        timbrado = documento.gTimb
 
         # Determinar tipo de documento
         tipo_doc_map = {
-            1: "FACTURA ELECTRÓNICA",
-            4: "AUTOFACTURA ELECTRÓNICA",
-            5: "NOTA DE CRÉDITO ELECTRÓNICA",
-            6: "NOTA DE DÉBITO ELECTRÓNICA",
-            7: "NOTA DE REMISIÓN ELECTRÓNICA",
+            1: "Factura electrónica Nro:",
+            4: "Autofactura electrónica Nro:",
+            5: "Nota de crédito electrónica Nro:",
+            6: "Nota de débito electrónica Nro:",
+            7: "Nota de remisión electrónica Nro:",
         }
-        tipo_doc = tipo_doc_map.get(documento.gTimb.iTiDE, "DOCUMENTO ELECTRÓNICO")
+        tipo_doc_label = tipo_doc_map.get(
+            documento.gTimb.iTiDE, "Documento electrónico Nro:"
+        )
 
-        # Tabla del encabezado con logo y datos
-        header_data = []
+        # Crear contenido del encabezado
+        # Columna izquierda: Logo + datos emisor
+        left_content = []
 
-        # Fila 1: Logo y título
+        # Logo
         if logo_path:
             try:
-                logo = RLImage(logo_path, width=3 * cm, height=2 * cm)
-                header_data.append(
-                    [
-                        logo,
-                        Paragraph(
-                            f"<b>KuDE de {tipo_doc}</b>", self.styles["KuDETitle"]
-                        ),
-                    ]
-                )
+                logo = RLImage(logo_path, width=3 * cm, height=3 * cm)
+                left_content.append([logo])
             except:
-                header_data.append(
-                    [
-                        "",
-                        Paragraph(
-                            f"<b>KuDE de {tipo_doc}</b>", self.styles["KuDETitle"]
-                        ),
-                    ]
-                )
-        else:
-            header_data.append(
-                ["", Paragraph(f"<b>KuDE de {tipo_doc}</b>", self.styles["KuDETitle"])]
+                left_content.append([""])
+
+        # Datos del emisor (debajo del logo)
+        left_content.append(
+            [Paragraph(f"<b>{emisor.dNomEmi}</b>", self.styles["KuDENormal"])]
+        )
+        left_content.append([Paragraph(f"{emisor.dDirEmi}", self.styles["KuDESmall"])])
+        left_content.append(
+            [Paragraph(f"Ciudad: {emisor.dDesCiuEmi or ''}", self.styles["KuDESmall"])]
+        )
+        left_content.append(
+            [Paragraph(f"Teléfono: {emisor.dTelEmi}", self.styles["KuDESmall"])]
+        )
+
+        # Actividad económica
+        if emisor.gActEco:
+            act_eco = emisor.gActEco[0].dDesActEco if emisor.gActEco else ""
+            left_content.append(
+                [Paragraph(f"Actividad económica: {act_eco}", self.styles["KuDESmall"])]
             )
 
-        header_table = Table(header_data, colWidths=[4 * cm, 13 * cm])
+        left_table = Table(left_content, colWidths=[6 * cm])
+        left_table.setStyle(
+            TableStyle(
+                [
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ]
+            )
+        )
+
+        # Columna derecha: Timbrado y número de documento
+        right_content = [
+            [
+                Paragraph(
+                    f"<b>RUC:</b> {emisor.dRucEm}-{emisor.dDVEmi}",
+                    self.styles["KuDENormal"],
+                )
+            ],
+            [
+                Paragraph(
+                    f"<b>Timbrado Nº:</b> {timbrado.dNumTim}", self.styles["KuDENormal"]
+                )
+            ],
+            [
+                Paragraph(
+                    f"<b>Fecha de inicio de vigencia:</b> {timbrado.dFeIniT}",
+                    self.styles["KuDENormal"],
+                )
+            ],
+            [Spacer(1, 0.3 * cm)],
+            [Paragraph(f"<b>{tipo_doc_label}</b>", self.styles["KuDENormal"])],
+            [
+                Paragraph(
+                    f"<b>{timbrado.dEst}-{timbrado.dPunExp}-{timbrado.dNumDoc}</b>",
+                    self.styles["KuDETitle"],
+                )
+            ],
+        ]
+
+        right_table = Table(right_content, colWidths=[11 * cm])
+        right_table.setStyle(
+            TableStyle(
+                [
+                    ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ]
+            )
+        )
+
+        # Combinar ambas columnas en una tabla
+        header_data = [[left_table, right_table]]
+        header_table = Table(header_data, colWidths=[6 * cm, 11 * cm])
         header_table.setStyle(
             TableStyle(
                 [
-                    ("ALIGN", (0, 0), (0, 0), "LEFT"),
-                    ("ALIGN", (1, 0), (1, 0), "CENTER"),
-                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("BOX", (0, 0), (-1, -1), 1.5, colors.black),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                    ("TOPPADDING", (0, 0), (-1, -1), 10),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
                 ]
             )
         )
@@ -263,77 +325,33 @@ class KuDEGenerator:
         return elements
 
     def _build_emisor_timbrado(self, documento: DocumentoElectronico) -> list:
-        """Construye la sección de datos del emisor y timbrado."""
-        elements = []
-
-        emisor = documento.gEmis
-        timbrado = documento.gTimb
-
-        # Datos del emisor
-        emisor_data = [
-            ["Datos del emisor:", "Datos de timbrado:"],
-            [f"Nombre: {emisor.dNomEmi}", f"RUC: {emisor.dRucEm}-{emisor.dDVEmi}"],
-            [f"Dirección: {emisor.dDirEmi}", f"Timbrado Nº: {timbrado.dNumTim}"],
-            [f"Ciudad: {emisor.dDesCiuEmi or ''}", f"Fecha inicio: {timbrado.dFeIniT}"],
-            [
-                f"Teléfono: {emisor.dTelEmi}",
-                f"Documento: {timbrado.dEst}-{timbrado.dPunExp}-{timbrado.dNumDoc}",
-            ],
-            [f"Email: {emisor.dEmailE}", ""],
-        ]
-
-        emisor_table = Table(emisor_data, colWidths=[8.5 * cm, 8.5 * cm])
-        emisor_table.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#E8E8E8")),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#000000")),
-                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("FONTSIZE", (0, 0), (-1, -1), 8),
-                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 5),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 5),
-                    ("TOPPADDING", (0, 0), (-1, -1), 3),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-                ]
-            )
-        )
-
-        elements.append(emisor_table)
-
-        return elements
+        """Ya no se usa - el encabezado ahora incluye todo."""
+        return []
 
     def _build_datos_generales(self, documento: DocumentoElectronico) -> list:
-        """Construye la sección de datos generales y receptor."""
+        """Construye la sección de datos generales y receptor estilo Equifax."""
         elements = []
 
         datos = documento.gDatGralOpe
         receptor = documento.gDatRec
 
         # Formatear fecha
-        fecha_emision = datos.dFeEmiDE.strftime("%d-%m-%Y %H:%M:%S")
+        fecha_emision = datos.dFeEmiDE.strftime("%d/%m/%Y")
 
         # Condición de venta
         condicion = (
-            "Contado"
+            "CONTADO"
             if documento.gPaConEIni and documento.gPaConEIni.iCondOpe == 1
-            else "Crédito"
+            else "CREDITO"
         )
 
-        # Datos generales
-        general_data = [
-            [
-                f"Fecha y hora de Emisión: {fecha_emision}",
-                f"Condición de Venta: {condicion}",
-            ],
-            [
-                f"Moneda: {documento.gTotSub.cMoneOpe}",
-                f"Tipo de Cambio: {documento.gTotSub.dTiCam or 1}",
-            ],
-        ]
+        # Plazo (si es crédito)
+        plazo = ""
+        if documento.gPaConEIni and documento.gPaConEIni.iCondOpe == 2:
+            if documento.gPaConEIni.gCuotas:
+                plazo = f"{len(documento.gPaConEIni.gCuotas)} cuotas"
 
-        # Datos del receptor
+        # RUC del receptor
         ruc_receptor = ""
         if receptor.dRucRec:
             ruc_receptor = (
@@ -344,49 +362,57 @@ class KuDEGenerator:
         elif receptor.dNumIDRec:
             ruc_receptor = receptor.dNumIDRec
 
-        receptor_data = [
-            [f"RUC/Documento de Identidad Nº: {ruc_receptor}"],
-            [f"Nombre o Razón Social: {receptor.dNomRec}"],
-            [f"Dirección: {receptor.dDirRec or ''}"],
-            [f"Teléfono: {receptor.dTelRec or ''}"],
-            [f"Correo Electrónico: {receptor.dEmailRec or ''}"],
-            [f"Tipo de Operación: {receptor.dDesTiOpe or 'Venta de Mercadería'}"],
+        # Crear tabla con dos columnas
+        data = [
+            # Fila 1
+            [f"Fecha de Emisión: {fecha_emision}", f"RUC: {ruc_receptor}"],
+            # Fila 2
+            [f"Condición de Venta: {condicion}", f"Cliente: {receptor.dNomRec}"],
+            # Fila 3
+            [
+                f"Plazo: {plazo}" if plazo else "",
+                f"Dirección: {receptor.dDirRec or ''}",
+            ],
+            # Fila 4
+            [
+                f"Moneda: {documento.gTotSub.cMoneOpe}",
+                f"Teléfono: {receptor.dTelRec or ''}",
+            ],
+            # Fila 5
+            [
+                f"Tipo de Cambio: {documento.gTotSub.dTiCam or ''}",
+                f"Correo electrónico: {receptor.dEmailRec or ''}",
+            ],
+            # Fila 6
+            [
+                "CDC asociado:",
+                f"Tipo de Transacción: {receptor.dDesTiOpe or 'Prestación de servicios'}",
+            ],
+            # Fila 7
+            ["Tipo Doc. asociado:", "Motivo Emisión:"],
+            # Fila 8
+            ["Nº Comp. asociado:", "Periodo de Facturacion:"],
+            # Fila 9
+            ["Cod. Afiliado: ", ""],
         ]
 
-        # Tabla de datos generales
-        general_table = Table(general_data, colWidths=[8.5 * cm, 8.5 * cm])
-        general_table.setStyle(
+        table = Table(data, colWidths=[8.5 * cm, 8.5 * cm])
+        table.setStyle(
             TableStyle(
                 [
-                    ("FONTSIZE", (0, 0), (-1, -1), 8),
-                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 5),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 5),
-                    ("TOPPADDING", (0, 0), (-1, -1), 3),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                    ("BOX", (0, 0), (-1, -1), 1, colors.black),
+                    ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.black),
+                    ("FONTSIZE", (0, 0), (-1, -1), 7),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                    ("TOPPADDING", (0, 0), (-1, -1), 2),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                 ]
             )
         )
 
-        elements.append(general_table)
-        elements.append(Spacer(1, 0.2 * cm))
-
-        # Tabla de receptor
-        receptor_table = Table(receptor_data, colWidths=[17 * cm])
-        receptor_table.setStyle(
-            TableStyle(
-                [
-                    ("FONTSIZE", (0, 0), (-1, -1), 8),
-                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 5),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 5),
-                    ("TOPPADDING", (0, 0), (-1, -1), 3),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-                ]
-            )
-        )
-
-        elements.append(receptor_table)
+        elements.append(table)
 
         return elements
 
@@ -394,7 +420,7 @@ class KuDEGenerator:
         """Construye la tabla de ítems."""
         elements = []
 
-        # Encabezado de la tabla
+        # Encabezado de la tabla (sin "Valor de Venta")
         items_data = [
             [
                 "Cod",
@@ -403,7 +429,6 @@ class KuDEGenerator:
                 "Cantidad",
                 "Precio\nUnitario",
                 "Descuento",
-                "Valor de Venta",
                 "Exentas",
                 "5%",
                 "10%",
@@ -439,27 +464,25 @@ class KuDEGenerator:
                     str(item.dCantProSer),
                     self._format_currency(valor.dPUniProSer),
                     self._format_currency(valor.dDescItem or Decimal("0")),
-                    self._format_currency(valor.dTotOpeItem),
                     exentas,
                     iva5,
                     iva10,
                 ]
             )
 
-        # Crear tabla
+        # Crear tabla con ancho total de 17 cm (9 columnas)
         items_table = Table(
             items_data,
             colWidths=[
-                1.5 * cm,
-                4 * cm,
-                1.5 * cm,
-                1.5 * cm,
-                2 * cm,
-                1.8 * cm,
-                2 * cm,
-                1.8 * cm,
-                1.8 * cm,
-                1.8 * cm,
+                1.2 * cm,  # Cod
+                4.5 * cm,  # Descripción
+                1.3 * cm,  # Unidad
+                1.3 * cm,  # Cantidad
+                2.0 * cm,  # Precio Unitario
+                1.7 * cm,  # Descuento
+                1.7 * cm,  # Exentas
+                1.7 * cm,  # 5%
+                1.6 * cm,  # 10%
             ],
         )
 
@@ -481,9 +504,9 @@ class KuDEGenerator:
                     ("ALIGN", (3, 1), (-1, -1), "RIGHT"),  # Resto alineado a derecha
                     # Bordes
                     ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                    # Padding
-                    ("LEFTPADDING", (0, 0), (-1, -1), 3),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+                    # Padding (igual que tabla de datos generales)
+                    ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 4),
                     ("TOPPADDING", (0, 0), (-1, -1), 2),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
                 ]
