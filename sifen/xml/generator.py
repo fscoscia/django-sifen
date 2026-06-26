@@ -369,6 +369,18 @@ class XMLGenerator:
         if gDatGralOpe.dDesMoneOpe:
             self._add_element(ope_elem, "dDesMoneOpe", gDatGralOpe.dDesMoneOpe)
 
+        # dCondTiCam - Condición del tipo de cambio (obligatorio si moneda != PYG)
+        if hasattr(gDatGralOpe, "dCondTiCam") and gDatGralOpe.dCondTiCam is not None:
+            self._add_element(
+                ope_elem, "dCondTiCam", self._format_decimal(gDatGralOpe.dCondTiCam, 0)
+            )
+
+        # dTiCam - Tipo de cambio (obligatorio si dCondTiCam = 1)
+        if hasattr(gDatGralOpe, "dTiCam") and gDatGralOpe.dTiCam is not None:
+            self._add_element(
+                ope_elem, "dTiCam", self._format_decimal(gDatGralOpe.dTiCam, 4)
+            )
+
     def _generate_emisor(self, parent: etree.Element):
         """Genera el grupo D - Emisor (gEmis)."""
         gEmis = self.documento.gEmis
@@ -471,11 +483,11 @@ class XMLGenerator:
         # Obligatorio si iNatRec = 2 y iTiOpe != 4 (según manual)
         i_nat_rec = getattr(gDatRec, "iNatRec", None)
         i_ti_ope = getattr(gDatRec, "iTiOpe", None)
-        
+
         if i_nat_rec == 2 and i_ti_ope != 4:
             i_tip_id = getattr(gDatRec, "iTipIDRec", None)
             d_dtip_id = getattr(gDatRec, "dDTipIDRec", None)
-        
+
             if i_tip_id is not None:
                 self._add_element(rec_elem, "iTipIDRec", i_tip_id)
             if d_dtip_id:
@@ -749,6 +761,12 @@ class XMLGenerator:
         if totales.dTBasGraIVA:
             self._add_element(
                 tot_elem, "dTBasGraIVA", self._format_amount(totales.dTBasGraIVA)
+            )
+
+        # dTotGralOpeMe: Total general en guaraníes (obligatorio para monedas extranjeras)
+        if totales.dTotGralOpeMe is not None:
+            self._add_element(
+                tot_elem, "dTotGralOpeMe", self._format_amount(totales.dTotGralOpeMe)
             )
 
         # dTotalGs: Total en Guaraníes (solo cuando la moneda NO es PYG)
@@ -1276,9 +1294,22 @@ class XMLGenerator:
                 # cMoneTiPag: Moneda del pago (obligatorio, PYG por defecto)
                 moneda_pago = getattr(pago, "cMoneTiPag", None) or "PYG"
                 self._add_element(pago_elem, "cMoneTiPag", moneda_pago)
-                # dDMoneTiPag: Descripción de la moneda (opcional)
-                desc_moneda = getattr(pago, "dDMoneTiPag", None) or "guarani"
+                # dDMoneTiPag: Descripción de la moneda (OBLIGATORIO)
+                # Campo en modelo: dDesMoneTiPag
+                desc_moneda = getattr(pago, "dDesMoneTiPag", None)
+                if not desc_moneda:
+                    # Valor por defecto según la moneda (según tabla SIFEN)
+                    desc_moneda = "Guarani" if moneda_pago == "PYG" else moneda_pago
                 self._add_element(pago_elem, "dDMoneTiPag", desc_moneda)
+                # dTiCamTiPag: Tipo de cambio del pago (solo si moneda != PYG)
+                if moneda_pago != "PYG":
+                    tipo_cambio_pago = getattr(pago, "dTiCamTiPag", None)
+                    if tipo_cambio_pago:
+                        self._add_element(
+                            pago_elem,
+                            "dTiCamTiPag",
+                            self._format_decimal(tipo_cambio_pago, 4),
+                        )
 
         # Cuotas
         if condicion.gCuotas:

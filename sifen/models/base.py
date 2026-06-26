@@ -7,6 +7,7 @@ Basado en SifenObjectBase.java de la librería Java.
 from typing import Any, Dict, Optional, Tuple
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, date
+from decimal import Decimal
 
 
 @dataclass
@@ -163,6 +164,12 @@ class DatosGeneralesDE(SifenObject):
 
     # C006 - Descripción de la moneda (opcional)
     dDesMoneOpe: Optional[str] = None
+
+    # C007 - Condición del tipo de cambio (obligatorio si cMoneOpe != PYG)
+    dCondTiCam: Optional[Decimal] = None
+
+    # C008 - Tipo de cambio (obligatorio si dCondTiCam = 1)
+    dTiCam: Optional[Decimal] = None
 
     def validate(self) -> Tuple[bool, Optional[str]]:
         """Valida los datos generales."""

@@ -130,7 +130,7 @@ def enviar_sincronico_ejemplo():
             dNumTim=80159272,
             dEst="001",
             dPunExp="001",
-            dNumDoc="0000034",
+            dNumDoc="0000049",
             dFeIniT=datetime.strptime("2026-04-16", "%Y-%m-%d").date(),
         ),
         gDatGralOpe=DatosGeneralesDE(
@@ -290,13 +290,13 @@ def main():
     # Descomenta la opción que desees probar:
 
     # 1. Factura Electrónica (envío sincrónico)
-    # enviar_sincronico_ejemplo()
+    enviar_sincronico_ejemplo()
 
     # 2. Envío por lote de facturas
     # enviar_lote_ejemplo()
 
     # 3. Nota de Crédito
-    enviar_nota_credito_ejemplo()
+    # enviar_nota_credito_ejemplo()
 
     # 4. Nota de Débito
     # enviar_nota_debito_ejemplo()
