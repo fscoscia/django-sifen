@@ -112,7 +112,8 @@ class Emisor(SifenObject):
     def validate(self) -> Tuple[bool, Optional[str]]:
         """Valida los datos del emisor."""
         # Validar RUC (formato: 12345678-9)
-        if not self.dRucEm or len(self.dRucEm.replace("-", "")) < 8:
+        ruc_limpio = self.dRucEm.replace("-", "") if self.dRucEm else ""
+        if not self.dRucEm or len(ruc_limpio) < 1 or len(ruc_limpio) > 8:
             return False, f"RUC inválido: {self.dRucEm}"
 
         # Validar DV (1 dígito)
