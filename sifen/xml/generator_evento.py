@@ -131,7 +131,7 @@ class XMLEventoGenerator:
 
         # Orden según ejemplo oficial: dNumTim, dEst, dPunExp, dNumIn, dNumFin, iTiDE, mOtEve
         timbrado = etree.SubElement(grupo_inu, "dNumTim")
-        timbrado.text = str(evento.dNumTim)
+        timbrado.text = str(evento.dNumTim).zfill(8)
 
         est = etree.SubElement(grupo_inu, "dEst")
         est.text = evento.dEst
@@ -243,7 +243,7 @@ class XMLEventoGenerator:
         id_elem.text = evento.Id
 
         num_tim = etree.SubElement(grupo, "dNumTimRet")
-        num_tim.text = str(evento.dNumTimRet)
+        num_tim.text = str(evento.dNumTimRet).zfill(8)
 
         est = etree.SubElement(grupo, "dEstRet")
         est.text = evento.dEstRet

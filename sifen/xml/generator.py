@@ -278,7 +278,7 @@ class XMLGenerator:
         self._add_element(timb_elem, "iTiDE", gTimb.iTiDE)
         if gTimb.dDesTiDE:
             self._add_element(timb_elem, "dDesTiDE", gTimb.dDesTiDE)
-        self._add_element(timb_elem, "dNumTim", gTimb.dNumTim)
+        self._add_element(timb_elem, "dNumTim", str(gTimb.dNumTim).zfill(8))
         self._add_element(timb_elem, "dEst", gTimb.dEst)
         self._add_element(timb_elem, "dPunExp", gTimb.dPunExp)
         self._add_element(timb_elem, "dNumDoc", gTimb.dNumDoc)
