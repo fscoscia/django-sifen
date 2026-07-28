@@ -9,6 +9,11 @@ from lxml import etree
 from decimal import Decimal
 from datetime import datetime, date
 
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:  # Python 3.8
+    from backports.zoneinfo import ZoneInfo
+
 from sifen.models.documento import DocumentoElectronico
 from sifen.constants import NAMESPACE_SIFEN
 
@@ -18,6 +23,12 @@ NSMAP = {
     None: NS,
     "xsi": XSI_NS,
 }
+
+# SIFEN exige la hora local de Paraguay en dFecFirma. Se fija explícitamente
+# la zona horaria en vez de usar datetime.now() (hora del SO del servidor),
+# ya que si el servidor corre en UTC u otro TZ, dFecFirma queda adelantada
+# respecto a la hora real de Paraguay y SIFEN rechaza el DE con error 1004.
+TZ_PARAGUAY = ZoneInfo("America/Asuncion")
 
 
 class XMLGenerator:
@@ -130,9 +141,7 @@ class XMLGenerator:
         # ========================================
         # dFecFirma: Fecha y hora de firma (campo obligatorio)
         # ========================================
-        from datetime import datetime
-
-        fecha_firma = datetime.now()
+        fecha_firma = datetime.now(TZ_PARAGUAY)
         self._add_element(de_elem, "dFecFirma", self._format_datetime(fecha_firma))
 
         # ========================================

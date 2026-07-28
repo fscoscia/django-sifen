@@ -44,6 +44,7 @@ setup(
         "lxml>=4.9.0",
         "requests>=2.31.0",
         "python-dateutil>=2.8.0",
+        "backports.zoneinfo; python_version < '3.9'",
     ],
     extras_require={
         "django": [
