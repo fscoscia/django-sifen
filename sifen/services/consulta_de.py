@@ -40,7 +40,10 @@ class RespuestaConsultaDE:
     
     # XML de respuesta completo
     xml_respuesta: Optional[str] = None
-    
+
+    # Número de protocolo de autorización
+    numero_protocolo: Optional[str] = None
+
     @property
     def encontrado(self) -> bool:
         """Indica si se encontró el DE."""
@@ -149,6 +152,7 @@ class ConsultaDEService(SifenServiceBase):
         # Datos del DE (si se encontró)
         estado = None
         xml_de = None
+        numero_protocolo = None
 
         # xContenDE - Contenido del DE (contiene rDE y dProtAut)
         x_conten_de = resp_elem.find(f"{{{NS}}}xContenDE")
@@ -162,6 +166,8 @@ class ConsultaDEService(SifenServiceBase):
                     encoding='unicode',
                     pretty_print=True
                 )
+            # Número de protocolo de autorización
+            numero_protocolo = x_conten_de.findtext(f"{{{NS}}}dProtAut")
             # Estado derivado del código de respuesta
             estado = 'Aprobado' if codigo in ('0260', '0261') else codigo
         
@@ -180,6 +186,7 @@ class ConsultaDEService(SifenServiceBase):
             fecha_aprobacion=fecha_aprobacion,
             xml_de=xml_de,
             xml_respuesta=xml_respuesta,
+            numero_protocolo=numero_protocolo,
         )
 
 
