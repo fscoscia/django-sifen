@@ -53,6 +53,14 @@ class ReceptorSerializer(serializers.Serializer):
     naturaleza = serializers.IntegerField()  # 1=contribuyente, 2=no contribuyente
     tipo_operacion = serializers.IntegerField()  # 1=B2B, 2=B2C, etc.
     ruc = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    # D208 (iTipIDRec): obligatorio si naturaleza=2 (no contribuyente).
+    # 1=Cédula py, 2=Pasaporte, 3=Cédula extranjera, 4=Carnet de residencia,
+    # 5=Innominado (solo B2C), 6=Tarjeta diplomática, 9=Otro.
+    tipo_identificacion = serializers.IntegerField(required=False, allow_null=True)
+    # D209 (dDTipIDRec): descripción, requerida cuando tipo_identificacion=9 (Otro).
+    descripcion_tipo_identificacion = serializers.CharField(
+        max_length=200, required=False, allow_blank=True
+    )
     nombre = serializers.CharField(max_length=200)
     direccion = serializers.CharField(max_length=500, required=False, allow_blank=True)
     departamento = serializers.IntegerField(required=False, allow_null=True)
@@ -186,6 +194,8 @@ class CrearDocumentoSerializer(serializers.Serializer):
         receptor = Receptor(
             iNatRec=receptor_data['naturaleza'],
             iTiOpe=receptor_data['tipo_operacion'],
+            iTipIDRec=receptor_data.get('tipo_identificacion'),
+            dDTipIDRec=receptor_data.get('descripcion_tipo_identificacion'),
             dNumIDRec=receptor_data.get('ruc'),
             dNomRec=receptor_data['nombre'],
             dDirRec=receptor_data.get('direccion'),

@@ -100,29 +100,68 @@ class Receptor(SifenObject):
         """Valida datos de receptor contribuyente."""
         if not self.dRucRec:
             return False, "Receptor contribuyente debe tener RUC"
+
+        # D210b (código 1334): si el receptor es contribuyente (iNatRec=1),
+        # el número de documento de identidad no debe informarse.
+        if self.dNumIDRec:
+            return (
+                False,
+                "Receptor contribuyente no debe informar número de "
+                "documento de identidad (dNumIDRec)",
+            )
+
         return True, None
 
-    def _validate_no_contribuyente(self) -> Tuple[bool, Optional[str]]:
+    def _validate_no_contribuyente(
+        self, i_ti_de: Optional[int] = None
+    ) -> Tuple[bool, Optional[str]]:
         """Valida datos de receptor no contribuyente."""
         if self.iTiOpe == 1:
             return False, "Operación B2B (iTiOpe=1) solo es válida para contribuyentes"
 
-        if self.iTiOpe == 4:
-            return True, None
-
+        # D208g (código 1335): obligatorio si iNatRec=2, sin excepción por
+        # iTiOpe. SIFEN rechaza los B2F (iTiOpe=4) que omiten este campo.
         if not self.iTipIDRec:
             return False, "No contribuyente debe tener tipo de documento (iTipIDRec)"
 
         if self.iTipIDRec not in [1, 2, 3, 4, 5, 6, 9]:
             return False, f"Tipo de documento inválido: {self.iTipIDRec}"
 
-        if not self.dNumIDRec:
+        # D208f (código 1333): el tipo de documento Innominado (5) solo es
+        # válido cuando el tipo de operación es B2C (iTiOpe=2).
+        if self.iTipIDRec == 5 and self.iTiOpe != 2:
+            return (
+                False,
+                "El tipo de documento de identidad Innominado (5) solo es "
+                "válido para operaciones B2C (iTiOpe=2)",
+            )
+
+        # D208e (código 1331): el receptor no puede ser Innominado (5) en
+        # Notas de Crédito, Notas de Débito o Notas de Remisión (iTiDE 5, 6, 7).
+        if self.iTipIDRec == 5 and i_ti_de in (5, 6, 7):
+            return (
+                False,
+                "El receptor no puede ser Innominado (iTipIDRec=5) en Notas "
+                "de Crédito, Débito o Remisión",
+            )
+
+        # D210 (código 1314): obligatorio si iNatRec=2 y iTiOpe≠4 (B2F).
+        # En caso de receptor Innominado sin número informado, se completa
+        # con "0" al generar el XML (ver xml/generator.py).
+        if self.iTiOpe != 4 and not self.dNumIDRec:
             return False, "No contribuyente debe tener número de documento (dNumIDRec)"
 
         return True, None
 
-    def validate(self) -> Tuple[bool, Optional[str]]:
-        """Valida los datos del receptor."""
+    def validate(self, i_ti_de: Optional[int] = None) -> Tuple[bool, Optional[str]]:
+        """
+        Valida los datos del receptor.
+
+        Args:
+            i_ti_de: Tipo de Documento Electrónico (gTimb.iTiDE) del DE al
+                que pertenece este receptor. Se usa para la validación
+                D208e (código 1331). Si no se provee, esa validación se omite.
+        """
         if self.iNatRec not in [1, 2]:
             return False, f"Naturaleza del receptor inválida: {self.iNatRec}"
 
@@ -132,4 +171,4 @@ class Receptor(SifenObject):
         if self.iNatRec == 1:
             return self._validate_contribuyente()
 
-        return self._validate_no_contribuyente()
+        return self._validate_no_contribuyente(i_ti_de)

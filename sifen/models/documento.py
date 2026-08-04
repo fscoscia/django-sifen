@@ -257,8 +257,8 @@ class DocumentoElectronico(SifenObject):
         if not is_valid:
             return False, f"Error en emisor: {error}"
 
-        # Validar receptor
-        is_valid, error = self.gDatRec.validate()
+        # Validar receptor (se pasa iTiDE para la validación D208e/1331)
+        is_valid, error = self.gDatRec.validate(self.gTimb.iTiDE)
         if not is_valid:
             return False, f"Error en receptor: {error}"
 

@@ -488,22 +488,28 @@ class XMLGenerator:
             self._add_element(rec_elem, "dRucRec", gDatRec.dRucRec)
         if gDatRec.dDVRec:
             self._add_element(rec_elem, "dDVRec", gDatRec.dDVRec)
-        # D208 / D209: Tipo de documento de identidad del receptor
+        # D208 / D209 / D210: Datos de identidad del receptor no contribuyente.
         # Obligatorio si iNatRec = 2 (No contribuyente), sin excepción por iTiOpe.
         # SIFEN rechaza (código 1335) documentos B2F (iTiOpe=4) con receptor
-        # no contribuyente si se omiten estos campos.
+        # no contribuyente si se omiten estos campos. dNumIDRec no debe
+        # informarse si el receptor es contribuyente (código 1334).
         i_nat_rec = getattr(gDatRec, "iNatRec", None)
 
         if i_nat_rec == 2:
             i_tip_id = getattr(gDatRec, "iTipIDRec", None)
             d_dtip_id = getattr(gDatRec, "dDTipIDRec", None)
+            num_id = getattr(gDatRec, "dNumIDRec", None)
 
             if i_tip_id is not None:
                 self._add_element(rec_elem, "iTipIDRec", i_tip_id)
             if d_dtip_id:
                 self._add_element(rec_elem, "dDTipIDRec", d_dtip_id)
-        if gDatRec.dNumIDRec:
-            self._add_element(rec_elem, "dNumIDRec", gDatRec.dNumIDRec)
+
+            # Receptor Innominado (iTipIDRec=5) sin número: completar con "0".
+            if not num_id and i_tip_id == 5:
+                num_id = "0"
+            if num_id:
+                self._add_element(rec_elem, "dNumIDRec", num_id)
         self._add_element(rec_elem, "dNomRec", gDatRec.dNomRec)
         if gDatRec.dNomFanRec:
             self._add_element(rec_elem, "dNomFanRec", gDatRec.dNomFanRec)
