@@ -267,6 +267,7 @@ def sign_xml_string(
     config: SifenConfig,
     reference_id: str,
     csc: str = "ABCD0000000000000000000000000000",
+    csc_id: Optional[str] = None,
 ) -> str:
     """
     Firma un XML en formato string y actualiza el código QR.
@@ -276,6 +277,7 @@ def sign_xml_string(
         config: Configuración de SIFEN.
         reference_id: ID del elemento a referenciar.
         csc: Código Secreto del Contribuyente (CSC).
+        csc_id: Id del CSC (IdCSC). Si no se proporciona, usa el de config.
 
     Returns:
         XML firmado como string con QR actualizado.
@@ -288,7 +290,7 @@ def sign_xml_string(
     signed_root = signer.sign_document(root, reference_id)
 
     # Actualizar QR con DigestValue y cHashQR
-    update_qr_after_signature(signed_root, csc)
+    update_qr_after_signature(signed_root, csc, csc_id or config.csc_id)
 
     # Convertir a string
     return etree.tostring(signed_root, encoding="unicode", pretty_print=True)
@@ -313,7 +315,9 @@ def sign_xml_element(
 
 
 def update_qr_after_signature(
-    signed_xml: etree.Element, csc: str = "ABCD0000000000000000000000000000"
+    signed_xml: etree.Element,
+    csc: str = "ABCD0000000000000000000000000000",
+    csc_id: str = "0001",
 ) -> None:
     """
     Actualiza el código QR después de firmar el documento con el DigestValue y cHashQR.
@@ -321,6 +325,7 @@ def update_qr_after_signature(
     Args:
         signed_xml: Elemento XML ya firmado
         csc: Código Secreto del Contribuyente (CSC) - por defecto usa un valor de prueba
+        csc_id: Id del CSC (IdCSC) asociado al csc - por defecto "0001"
     """
     # 1. Extraer DigestValue de la firma
     digest_elem = signed_xml.find(f".//{{{DSIG_NS}}}DigestValue")
@@ -372,8 +377,8 @@ def update_qr_after_signature(
     else:
         rec_param = "dRucRec=0"
 
-    # IdCSC fijo
-    id_csc = "0001"
+    # IdCSC del CSC utilizado
+    id_csc = csc_id or "0001"
 
     # 4. Paso 1: Concatenar datos para el hash
     # Según manual ejemplo: nVersion=150&Id=...&dFeEmiDE=...&dRucRec=...&dTotGralOpe=...&dTotIVA=...&cItems=...&DigestValue=...&IdCSC=...

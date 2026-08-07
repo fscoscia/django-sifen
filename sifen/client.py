@@ -121,7 +121,7 @@ class SifenClient:
 
         root = etree.fromstring(xml_string.encode("utf-8"))
         signed_root = sign_xml_element(root, self.config, documento.CDC)
-        update_qr_after_signature(signed_root, self.config.csc)
+        update_qr_after_signature(signed_root, self.config.csc, self.config.csc_id)
         xml_firmado = etree.tostring(signed_root, encoding="unicode")
 
         # 5. Enviar a SIFEN
@@ -186,7 +186,13 @@ class SifenClient:
 
         return generate_xml(documento, self.config.ambiente)
 
-    def firmar_xml(self, xml: str, reference_id: str, csc: Optional[str] = None) -> str:
+    def firmar_xml(
+        self,
+        xml: str,
+        reference_id: str,
+        csc: Optional[str] = None,
+        csc_id: Optional[str] = None,
+    ) -> str:
         """
         Firma un XML con el certificado configurado y actualiza el código QR.
 
@@ -194,13 +200,20 @@ class SifenClient:
             xml: XML a firmar.
             reference_id: ID del elemento a referenciar en la firma.
             csc: Código Secreto del Contribuyente (CSC). Si no se proporciona, usa el del config.
+            csc_id: Id del CSC (IdCSC). Si no se proporciona, usa el del config.
 
         Returns:
             XML firmado con QR actualizado.
         """
         from sifen.crypto.signature import sign_xml_string
 
-        return sign_xml_string(xml, self.config, reference_id, csc or self.config.csc)
+        return sign_xml_string(
+            xml,
+            self.config,
+            reference_id,
+            csc or self.config.csc,
+            csc_id or self.config.csc_id,
+        )
 
     @classmethod
     def validar_ruc(cls, ruc: str, dv: Optional[str] = None) -> bool:
@@ -323,7 +336,7 @@ class SifenClient:
             # Actualizar QR con DigestValue, IdCSC y cHashQR después de firmar
             from sifen.crypto.signature import update_qr_after_signature
 
-            update_qr_after_signature(signed_root, self.config.csc)
+            update_qr_after_signature(signed_root, self.config.csc, self.config.csc_id)
 
             # Serializar el XML firmado — etree.tostring codifica & como &amp; correctamente
             xml_firmado = etree.tostring(signed_root, encoding="unicode")
