@@ -617,6 +617,10 @@ class XMLGenerator:
             item_elem, "dCantProSer", self._format_decimal(item.dCantProSer, 4)
         )
 
+        # E613 - Observación del ítem (opcional)
+        if item.dInfItem:
+            self._add_element(item_elem, "dInfItem", item.dInfItem)
+
         # gValorItem (no incluir para nota de remisión iTiDE=7)
         if item.gValorItem is not None:
             self._generate_valor_item(item_elem, item.gValorItem)

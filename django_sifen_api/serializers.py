@@ -84,6 +84,12 @@ class ItemSerializer(serializers.Serializer):
         required=False,
         default=Decimal('0')
     )
+    observacion = serializers.CharField(
+        max_length=500,
+        required=False,
+        allow_blank=True,
+        default=''
+    )
 
 
 class PagoSerializer(serializers.Serializer):
@@ -163,6 +169,7 @@ class CrearDocumentoSerializer(serializers.Serializer):
                 cUniMed=item_data['unidad_medida'],
                 dCantProSer=item_data['cantidad'],
                 gValorItem=valor_item,
+                dInfItem=item_data.get('observacion') or None,
             ))
         
         # Calcular totales
